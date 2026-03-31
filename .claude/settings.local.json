@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/jaledjara/Downloads/**)",
+      "Read(//Users/jaledjara/Desktop/**)",
+      "Read(//Users/jaledjara/**)",
+      "Bash(claude skill:*)",
+      "Bash(unzip:*)"
+    ]
+  }
+}
