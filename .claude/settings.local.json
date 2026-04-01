@@ -5,7 +5,12 @@
       "Read(//Users/jaledjara/Desktop/**)",
       "Read(//Users/jaledjara/**)",
       "Bash(claude skill:*)",
-      "Bash(unzip:*)"
+      "Bash(unzip:*)",
+      "Bash(rm -rf '\\(auth\\)' '\\(client\\)' '\\(professional\\)')",
+      "Bash(mkdir -p '\\(auth\\)' '\\(client\\)/home' '\\(client\\)/search' '\\(client\\)/profile' '\\(professional\\)/home' '\\(professional\\)/briefcase' '\\(professional\\)/profile')",
+      "Bash(npm install:*)",
+      "Bash(npx expo:*)",
+      "Bash(node -e \"const p = require\\(''''./package.json''''\\); console.log\\(p.dependencies[''''expo-dev-client'''']\\)\")"
     ]
   }
 }
