@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import {
   View, Text, TextInput, StyleSheet, Pressable,
 } from 'react-native';
@@ -23,7 +23,7 @@ export const OTPInput: React.FC<OTPInputProps> = ({
   disabled = false,
 }) => {
   const inputRef = useRef<TextInput>(null);
-  const digits   = value.padEnd(OTP_LENGTH, '').split('').slice(0, OTP_LENGTH);
+  const digits = Array.from({ length: OTP_LENGTH }, (_, i) => value[i] ?? '');
 
   const handleChange = (text: string) => {
     const clean = text.replace(/\D/g, '').slice(0, OTP_LENGTH);

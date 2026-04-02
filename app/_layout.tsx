@@ -10,7 +10,7 @@ import {
 } from '@expo-google-fonts/bricolage-grotesque';
 import {
   DMSans_400Regular,
-  DMSans_400Italic,
+  DMSans_400Regular_Italic,
   DMSans_500Medium,
   DMSans_600SemiBold,
 } from '@expo-google-fonts/dm-sans';
@@ -20,25 +20,25 @@ import { useEffect } from 'react';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     BricolageGrotesque_400Regular,
     BricolageGrotesque_500Medium,
     BricolageGrotesque_600SemiBold,
     BricolageGrotesque_700Bold,
     BricolageGrotesque_800ExtraBold,
     DMSans_400Regular,
-    DMSans_400Italic,
+    DMSans_400Italic: DMSans_400Regular_Italic,
     DMSans_500Medium,
     DMSans_600SemiBold,
   });
 
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontError) {
     return null;
   }
 

@@ -15,7 +15,7 @@ interface AppHeaderProps {
 }
 
 const bgByVariant: Record<AppHeaderVariant, string> = {
-  blue:        colors.background.brand,
+  blue:        colors.palette.blue700,   // #1E4785 — nav header, distinct from CTA blue-500
   dark:        colors.background.inverse,
   white:       colors.background.card,
   transparent: colors.palette.transparent,
