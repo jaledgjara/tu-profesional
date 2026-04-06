@@ -23,6 +23,13 @@ export const strings = {
     otpSubtitle: "Revisá tu bandeja de entrada para el código.",
     otpResend: "Reenviar código",
     otpCta: "Confirmar",
+
+    // LocationFormScreen — títulos por modo
+    clientLocationTitle: "¿Dónde vivís?",
+    clientLocationDesc:  "Usamos tu ubicación para mostrarte profesionales cerca tuyo.",
+    proLocationTitle:    "¿Dónde atendés?",
+    proLocationDesc:     "Ingresá la dirección de tu consultorio. Solo la usamos para calcular distancias.",
+
     roleTitle: "Seleccioná tu perfil",
     roleSubtitle:
       "Personalizaremos tu experiencia según cómo quieras usar la plataforma.",
@@ -148,6 +155,20 @@ export const strings = {
     province: "PROVINCIA Y PAÍS",
     saveAndFinish: "GUARDAR Y FINALIZAR",
     sslNote: "TUS DATOS ESTÁN PROTEGIDOS POR SSL",
+
+    // ProfessionalFormScreen
+    profileTitle:              "Perfil Profesional",
+    photoPickerMsg:            "Tocá para subir tu foto de perfil",
+    photoPermissionMsg:        "Tu Profesional necesita acceso a tu galería de fotos para que puedas subir tu imagen de perfil.",
+    descriptionPersonal:       "DESCRIPCIÓN PERSONAL",
+    verifiedLicense:           "MATRÍCULA VERIFICADA",
+    specialty:                 "ESPECIALIDAD",
+    specialtyPlaceholder:      "Ej: Psicoanálisis",
+    subSpecialties:            "SUB-ESPECIALIDADES",
+    subSpecialtiesPlaceholder: "Ej: niños, pareja, duelo...",
+    personalization:           "PERSONALIZACIÓN",
+    attendOnline:              "Atención Online",
+    attendPresencial:          "Presencial",
   },
 
   // COMMON
