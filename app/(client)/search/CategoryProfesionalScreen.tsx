@@ -1,41 +1,50 @@
-// Screen: HomeScreen (usuario final)
-// Capa: screen (silly view — solo renderiza, lógica en hook)
+// Screen: CategoryProfesionalScreen
+// Capa: screen (silly view)
 // Cliente: usuario final
+// Acceso: search/index.tsx → router.push con categoryId, categoryLabel, iconName
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   View,
   Text,
+  TextInput as RNTextInput,
   Pressable,
   FlatList,
   StyleSheet,
   Linking,
 } from "react-native";
-import { useRouter } from "expo-router";
+import type { ComponentProps } from "react";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { FilterChip, SectionRow } from "@/shared/components";
 import { ProfessionalCard } from "@/features/professionals/components/ProfessionalCard";
-import { SkeletonCard } from "@/features/professionals/components/SkeletonCard";
-import { PSYCHOLOGY_CATEGORIES } from "@/features/categories/types";
-import type { PsychologyCategoryId } from "@/features/categories/types";
+import { SkeletonCard }     from "@/features/professionals/components/SkeletonCard";
 import { useNearbyProfessionals } from "@/features/home/hooks/useNearbyProfessionals";
 import type { Professional } from "@/features/professionals/types";
 import {
-  colors,
-  typography,
-  spacing,
-  componentRadius,
-  getShadow,
-  layout,
+  colors, typography, spacing, componentRadius, getShadow, layout,
 } from "@/shared/theme";
-import { strings } from "@/shared/utils/strings";
+import { strings }       from "@/shared/utils/strings";
 import { buildWhatsAppUrl } from "@/shared/utils/format";
 
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+
 // ─────────────────────────────────────────────────────────────────────────────
-// SUB-COMPONENTES PRIVADOS
+// SUB-COMPONENTES (mismos estados que home)
 // ─────────────────────────────────────────────────────────────────────────────
+
+const SKELETON_KEYS = [1, 2, 3] as const;
+
+function SkeletonList() {
+  return (
+    <View style={skeletonStyles.container}>
+      {SKELETON_KEYS.map((k) => (
+        <SkeletonCard key={k} />
+      ))}
+    </View>
+  );
+}
 
 function EmptyState({ onRetry }: { onRetry: () => void }) {
   return (
@@ -53,11 +62,7 @@ function EmptyState({ onRetry }: { onRetry: () => void }) {
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <View style={emptyStyles.container}>
-      <Ionicons
-        name="cloud-offline-outline"
-        size={48}
-        color={colors.status.error}
-      />
+      <Ionicons name="cloud-offline-outline" size={48} color={colors.status.error} />
       <Text style={emptyStyles.title}>{strings.home.errorTitle}</Text>
       <Text style={emptyStyles.desc}>{strings.home.errorDesc}</Text>
       <Pressable onPress={onRetry} style={emptyStyles.retryBtn}>
@@ -67,28 +72,22 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-const SKELETON_KEYS = [1, 2, 3] as const;
-
-function SkeletonList() {
-  return (
-    <View style={skeletonStyles.container}>
-      {SKELETON_KEYS.map((k) => (
-        <SkeletonCard key={k} />
-      ))}
-    </View>
-  );
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function HomeScreen() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
+export default function CategoryProfesionalScreen() {
+  const router   = useRouter();
+  const insets   = useSafeAreaInsets();
+  const inputRef = useRef<RNTextInput>(null);
+  const [query, setQuery] = useState("");
+
+  const { categoryLabel, iconName } = useLocalSearchParams<{
+    categoryLabel: string;
+    iconName:      string;
+  }>();
+
   const { professionals, isLoading, error, refetch } = useNearbyProfessionals();
-  const [selectedCategory, setSelectedCategory] =
-    useState<PsychologyCategoryId>("todos");
 
   const handleContact = (phone: string) => {
     Linking.openURL(buildWhatsAppUrl(phone));
@@ -108,79 +107,21 @@ export default function HomeScreen() {
       distanceM={item.distanceM}
       isAvailable={item.isAvailable}
       layout="vertical"
-      onPress={() => router.push({ pathname: "/(client)/home/[id]", params: { id: item.id } })}
+      onPress={() =>
+        router.push({ pathname: "/(client)/search/[id]", params: { id: item.id } })
+      }
       onContact={() => handleContact(item.phone)}
     />
   );
 
-  const listHeader = (
-    <>
-      {/* ── HERO HEADER ────────────────────────────────────────────────── */}
-      <View style={[styles.hero, { paddingTop: insets.top + spacing[5] }]}>
-        <View>
-          <Text style={styles.welcomeLabel}>{strings.home.welcomeLabel}</Text>
-          <Text style={styles.userName}>Nombre Usuario</Text>
-        </View>
-      </View>
-
-      {/* ── SEARCH BAR BUTTON ──────────────────────────────────────────── */}
-      <Pressable
-        onPress={() => router.push("/(client)/search")}
-        style={({ pressed }) => [
-          styles.searchBar,
-          getShadow("sm"),
-          pressed && { opacity: 0.9 },
-        ]}
-        accessibilityRole="search"
-        accessibilityLabel={strings.home.searchPlaceholder}>
-        <Ionicons
-          name="search-outline"
-          size={20}
-          color={colors.text.tertiary}
-        />
-        <Text style={styles.searchPlaceholder}>
-          {strings.home.searchPlaceholder}
-        </Text>
-      </Pressable>
-
-      {/* ── CATEGORÍAS ─────────────────────────────────────────────────── */}
-      <FlatList
-        horizontal
-        data={PSYCHOLOGY_CATEGORIES}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <FilterChip
-            label={item.label}
-            isSelected={selectedCategory === item.id}
-            onPress={() => setSelectedCategory(item.id)}
-          />
-        )}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoriesContent}
-        style={styles.categoriesList}
-      />
-
-      {/* ── SECCIÓN TÍTULO ─────────────────────────────────────────────── */}
-      <SectionRow
-        title={strings.home.sectionNearby}
-        actionLabel={strings.home.seeAll}
-        onAction={() => router.push("/(client)/search")}
-        style={styles.sectionRow}
-      />
-    </>
-  );
-
-  // Estado error
   if (error) {
     return (
       <View style={styles.screen}>
         <FlatList
           data={[]}
           renderItem={null}
-          ListHeaderComponent={listHeader}
           ListEmptyComponent={<ErrorState onRetry={refetch} />}
           contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
         />
       </View>
     );
@@ -188,11 +129,64 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.screen}>
+
+      {/* ── HERO — botón volver + ícono + título ────────────────────────── */}
+      <View style={[styles.hero, { paddingTop: insets.top + spacing[2] }]}>
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel={strings.common.back}
+        >
+          <Ionicons name="arrow-back" size={24} color={colors.text.inverse} />
+        </Pressable>
+
+        <View style={styles.heroContent}>
+          {iconName ? (
+            <Ionicons
+              name={iconName as IoniconName}
+              size={28}
+              color={colors.text.inverse}
+            />
+          ) : null}
+          <Text style={styles.title}>{categoryLabel}</Text>
+        </View>
+      </View>
+
+      {/* ── SEARCH BAR — mitad en azul, mitad en blanco ─────────────────── */}
+      <Pressable
+        onPress={() => inputRef.current?.focus()}
+        style={[styles.searchBar, getShadow("sm")]}
+        accessibilityRole="search"
+        accessibilityLabel={strings.home.searchPlaceholder}
+      >
+        <Ionicons name="search-outline" size={20} color={colors.text.tertiary} />
+        <RNTextInput
+          ref={inputRef}
+          value={query}
+          onChangeText={setQuery}
+          placeholder={strings.home.searchPlaceholder}
+          placeholderTextColor={colors.text.tertiary}
+          returnKeyType="search"
+          style={styles.input}
+        />
+        {query.length > 0 && (
+          <Pressable
+            onPress={() => setQuery("")}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={strings.common.cancel}
+          >
+            <Ionicons name="close-circle" size={20} color={colors.text.tertiary} />
+          </Pressable>
+        )}
+      </Pressable>
+
+      {/* ── LISTA DE PROFESIONALES ──────────────────────────────────────── */}
       <FlatList
         data={isLoading ? [] : professionals}
         keyExtractor={(item) => item.id}
         renderItem={renderProfessional}
-        ListHeaderComponent={listHeader}
         ListEmptyComponent={
           isLoading ? <SkeletonList /> : <EmptyState onRetry={refetch} />
         }
@@ -200,6 +194,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
       />
+
     </View>
   );
 }
@@ -210,64 +205,58 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   screen: {
-    flex: 1,
+    flex:            1,
     backgroundColor: colors.background.screen,
   },
 
   // Hero
   hero: {
-    backgroundColor: colors.palette.blue700,
+    backgroundColor:   colors.palette.blue700,
     paddingHorizontal: spacing[4],
-    paddingBottom: spacing[10],
+    paddingBottom:     spacing[10],
+    gap:               spacing[3],
   },
-  welcomeLabel: {
-    ...typography.overline,
-    color: colors.text.inverse,
-    textTransform: "uppercase",
-    marginBottom: spacing[1],
+  backBtn: {
+    width:          44,
+    height:         44,
+    alignItems:     "center",
+    justifyContent: "center",
+    marginLeft:     -spacing[2],
   },
-  userName: {
-    ...typography.h2,
-    color: colors.text.inverse,
-  },
-
-  // Search bar
-  searchBar: {
+  heroContent: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: spacing[2],
-    backgroundColor: colors.background.card,
-    borderRadius: componentRadius.searchBar,
-    marginHorizontal: spacing[4],
-    marginTop: -spacing[5],
-    paddingHorizontal: spacing[4],
-    minHeight: layout.buttonHeightMd, // 44 — Apple HIG
+    alignItems:    "center",
+    gap:           spacing[3],
   },
-  searchPlaceholder: {
+  title: {
+    ...typography.h1,
+    color: colors.text.inverse,
+  },
+
+  // Search bar — mismo patrón que search/index
+  searchBar: {
+    flexDirection:     "row",
+    alignItems:        "center",
+    gap:               spacing[2],
+    backgroundColor:   colors.background.card,
+    borderRadius:      componentRadius.searchBar,
+    marginHorizontal:  spacing[4],
+    marginTop:         -spacing[5],
+    paddingHorizontal: spacing[4],
+    minHeight:         layout.buttonHeightMd,
+  },
+  input: {
+    flex:    1,
     ...typography.inputText,
-    color: colors.text.tertiary,
-    flex: 1,
-  },
-
-  // Categories
-  categoriesList: {
-    marginTop: spacing[5],
-  },
-  categoriesContent: {
-    paddingHorizontal: spacing[4],
-    gap: spacing[2],
-  },
-
-  // Section
-  sectionRow: {
-    marginTop: spacing[6],
-    paddingHorizontal: spacing[4],
-    marginBottom: spacing[1],
+    color:   colors.text.primary,
+    padding: 0,
   },
 
   // List
   listContent: {
-    paddingBottom: spacing[8],
+    paddingHorizontal: spacing[4],
+    paddingTop:        spacing[5],
+    paddingBottom:     spacing[8],
   },
   separator: {
     height: spacing[3],
@@ -277,29 +266,29 @@ const styles = StyleSheet.create({
 // Empty / Error
 const emptyStyles = StyleSheet.create({
   container: {
-    alignItems: "center",
+    alignItems:        "center",
     paddingHorizontal: spacing[8],
-    paddingTop: spacing[10],
-    gap: spacing[3],
+    paddingTop:        spacing[10],
+    gap:               spacing[3],
   },
   title: {
     ...typography.h3,
-    color: colors.text.primary,
+    color:     colors.text.primary,
     textAlign: "center",
   },
   desc: {
     ...typography.bodyMd,
-    color: colors.text.secondary,
+    color:     colors.text.secondary,
     textAlign: "center",
   },
   retryBtn: {
     paddingHorizontal: spacing[6],
-    paddingVertical: spacing[3],
-    borderRadius: componentRadius.button,
-    backgroundColor: colors.brand.primaryLight,
-    minHeight: layout.buttonHeightMd,
-    alignItems: "center",
-    justifyContent: "center",
+    paddingVertical:   spacing[3],
+    borderRadius:      componentRadius.button,
+    backgroundColor:   colors.brand.primaryLight,
+    minHeight:         layout.buttonHeightMd,
+    alignItems:        "center",
+    justifyContent:    "center",
   },
   retryLabel: {
     ...typography.buttonMd,
@@ -307,11 +296,11 @@ const emptyStyles = StyleSheet.create({
   },
 });
 
-// Skeleton list
+// Skeleton
 const skeletonStyles = StyleSheet.create({
   container: {
     paddingHorizontal: spacing[4],
-    gap: spacing[3],
-    paddingTop: spacing[2],
+    gap:               spacing[3],
+    paddingTop:        spacing[2],
   },
 });

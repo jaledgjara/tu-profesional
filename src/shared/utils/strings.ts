@@ -43,16 +43,27 @@ export const strings = {
 
   // HOME (usuario)
   home: {
+    welcomeLabel: "BIENVENIDO/A",
     greeting: "Buen día,",
     searchPlaceholder: "Buscar profesionales, especialidades...",
     sectionExplore: "Explorar por Enfoque",
-    sectionNearby: "Destacados cerca tuyo",
+    sectionNearby: "Más cercanos",
     seeAll: "Ver todos",
     filterAll: "Todos",
     filterOnline: "Online",
     filterPresencial: "Presencial",
     filterDisponible: "Disponible",
     comingSoon: "PRONTO",
+    emptyTitle: "Sin resultados",
+    emptyDesc: "No encontramos profesionales cerca tuyo. Probá cambiando los filtros.",
+    errorTitle: "Algo salió mal",
+    errorDesc: "No pudimos cargar los profesionales. Revisá tu conexión.",
+    retry: "Reintentar",
+  },
+
+  // SEARCH
+  search: {
+    title: "Buscar",
   },
 
   // PROFESSIONAL CARD
@@ -78,21 +89,34 @@ export const strings = {
     monthAgo: "Hace {n} mes",
     monthsAgo: "Hace {n} meses",
     verified: "Matrícula verificada",
+    socialNetworks: "Redes sociales",
+    seeAllReviews: "Ver todas las reseñas",
+    experience: "Experiencia",
+    rating: "Calificación",
+    reviews_label: "Reseñas",
+    leaveAppTitle: "¿Salir de la app?",
+    leaveAppDesc: "Serás redirigido a una aplicación externa.",
+    leaveAppConfirm: "Ir",
+    distance: "de tu casa",
   },
 
   // PERFIL (usuario)
   userProfile: {
-    title: "Mi perfil",
+    title: "Mi Perfil",
     personalInfo: "Información Personal",
     notifications: "Notificaciones",
     platformNews: "Novedades de la plataforma",
     platformNewsDesc: "Recibí actualizaciones sobre nuevos servicios.",
     name: "Nombre",
-    email: "Email",
+    email: "EMAIL",
     phone: "Teléfono",
     phoneEmpty: "No configurado",
     edit: "Editar",
     logout: "Cerrar sesión",
+    privacy: "Privacidad",
+    moreOptions: "Más opciones",
+    mockEmail: "miNombre@email.com",
+    mockName: "Nombre Usuario",
   },
 
   // PERFIL (profesional — vista propia)

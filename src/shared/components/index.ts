@@ -16,3 +16,4 @@ export { StickyBottomBar } from './StickyBottomBar';
 export { InfoSection }    from './InfoSection';
 export { StepIndicator }  from './StepIndicator';
 export { Dropdown }       from './Dropdown';
+export { AnimatedTabBar } from './AnimatedTabBar';
