@@ -1,14 +1,27 @@
-import { View, Text, StyleSheet } from 'react-native';
+// Ruta: /(professional)/briefcase
+// Mi Portafolio — el profesional ve su propio perfil público.
+// Reutiliza ProfessionalBriefcaseScreen con showEditButton=true.
+// TODO: reemplazar id hardcodeado por el id del usuario autenticado.
 
-export default function ProfessionalBriefcaseScreen() {
+import { ProfessionalBriefcaseScreen } from '@/features/professionals/screens/ProfessionalBriefcaseScreen';
+import { useProfessionalDetail }       from '@/features/professionals/hooks/useProfessionalDetail';
+
+export default function MyPortfolioScreen() {
+  // TODO: obtener id desde el contexto de auth
+  const { professional, yearsExperience, description, quote, quoteAuthor, reviews, socialLinks } =
+    useProfessionalDetail('1');
+
+  if (!professional) return null;
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>(professional) / briefcase</Text>
-    </View>
+    <ProfessionalBriefcaseScreen
+      professional={professional}
+      yearsExperience={yearsExperience}
+      description={description}
+      quote={quote}
+      quoteAuthor={quoteAuthor}
+      reviews={reviews}
+      socialLinks={socialLinks}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F7F5F2' },
-  text: { fontSize: 20, color: '#27231C' },
-});

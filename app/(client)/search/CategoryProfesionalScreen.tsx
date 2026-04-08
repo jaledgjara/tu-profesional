@@ -15,9 +15,9 @@ import {
 } from "react-native";
 import type { ComponentProps } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
+import { AppHeader, ScreenHero, IconButton } from "@/shared/components";
 import { ProfessionalCard } from "@/features/professionals/components/ProfessionalCard";
 import { SkeletonCard }     from "@/features/professionals/components/SkeletonCard";
 import { useNearbyProfessionals } from "@/features/home/hooks/useNearbyProfessionals";
@@ -78,7 +78,6 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 
 export default function CategoryProfesionalScreen() {
   const router   = useRouter();
-  const insets   = useSafeAreaInsets();
   const inputRef = useRef<RNTextInput>(null);
   const [query, setQuery] = useState("");
 
@@ -114,9 +113,31 @@ export default function CategoryProfesionalScreen() {
     />
   );
 
+  const header = (
+    <>
+      <AppHeader
+        variant="blue"
+        noBorder
+        leftAction={
+          <IconButton
+            icon={<Ionicons name="chevron-back" size={24} color={colors.text.inverse} />}
+            onPress={() => router.back()}
+          />
+        }
+      />
+      <ScreenHero
+        variant="title"
+        title={categoryLabel}
+        icon={iconName ? (iconName as IoniconName) : undefined}
+        withOverlap
+      />
+    </>
+  );
+
   if (error) {
     return (
       <View style={styles.screen}>
+        {header}
         <FlatList
           data={[]}
           renderItem={null}
@@ -129,29 +150,7 @@ export default function CategoryProfesionalScreen() {
 
   return (
     <View style={styles.screen}>
-
-      {/* ── HERO — botón volver + ícono + título ────────────────────────── */}
-      <View style={[styles.hero, { paddingTop: insets.top + spacing[2] }]}>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          accessibilityRole="button"
-          accessibilityLabel={strings.common.back}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.text.inverse} />
-        </Pressable>
-
-        <View style={styles.heroContent}>
-          {iconName ? (
-            <Ionicons
-              name={iconName as IoniconName}
-              size={28}
-              color={colors.text.inverse}
-            />
-          ) : null}
-          <Text style={styles.title}>{categoryLabel}</Text>
-        </View>
-      </View>
+      {header}
 
       {/* ── SEARCH BAR — mitad en azul, mitad en blanco ─────────────────── */}
       <Pressable
@@ -207,30 +206,6 @@ const styles = StyleSheet.create({
   screen: {
     flex:            1,
     backgroundColor: colors.background.screen,
-  },
-
-  // Hero
-  hero: {
-    backgroundColor:   colors.palette.blue700,
-    paddingHorizontal: spacing[4],
-    paddingBottom:     spacing[10],
-    gap:               spacing[3],
-  },
-  backBtn: {
-    width:          44,
-    height:         44,
-    alignItems:     "center",
-    justifyContent: "center",
-    marginLeft:     -spacing[2],
-  },
-  heroContent: {
-    flexDirection: "row",
-    alignItems:    "center",
-    gap:           spacing[3],
-  },
-  title: {
-    ...typography.h1,
-    color: colors.text.inverse,
   },
 
   // Search bar — mismo patrón que search/index

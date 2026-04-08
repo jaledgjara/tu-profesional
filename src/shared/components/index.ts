@@ -17,3 +17,5 @@ export { InfoSection }    from './InfoSection';
 export { StepIndicator }  from './StepIndicator';
 export { Dropdown }       from './Dropdown';
 export { AnimatedTabBar } from './AnimatedTabBar';
+export { Switch }         from './Switch';
+export { ScreenHero }     from './ScreenHero';

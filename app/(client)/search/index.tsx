@@ -5,7 +5,6 @@
 import React, { useState, useRef } from "react";
 import {
   View,
-  Text,
   TextInput as RNTextInput,
   Pressable,
   FlatList,
@@ -13,10 +12,9 @@ import {
 } from "react-native";
 import type { ComponentProps } from "react";
 import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { SectionRow } from "@/shared/components";
+import { AppHeader, ScreenHero, SectionRow } from "@/shared/components";
 import { SpecialtyCard } from "@/features/search/components/SpecialtyCard";
 import { CATEGORIES_CONFIG } from "@/features/categories/config";
 import type { CategoryConfig } from "@/features/categories/config";
@@ -38,7 +36,6 @@ type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
 export default function SearchScreen() {
   const router   = useRouter();
-  const insets   = useSafeAreaInsets();
   const inputRef = useRef<RNTextInput>(null);
   const [query, setQuery] = useState("");
 
@@ -72,10 +69,11 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.screen}>
+      {/* ── HEADER fijo 56pt ────────────────────────────────────────────── */}
+      <AppHeader variant="blue" noBorder />
+
       {/* ── HERO — título grande + espacio para overlap ─────────────────── */}
-      <View style={[styles.hero, { paddingTop: insets.top + spacing[5] }]}>
-        <Text style={styles.title}>{strings.search.title}</Text>
-      </View>
+      <ScreenHero variant="title" title={strings.search.title} withOverlap />
 
       {/* ── SEARCH BAR — mitad en azul, mitad en blanco ─────────────────── */}
       <Pressable
@@ -144,17 +142,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.screen,
   },
 
-  // Hero — mismo patrón que home, título grande en blanco
-  hero: {
-    backgroundColor: colors.palette.blue700,
-    paddingHorizontal: spacing[4],
-    paddingBottom: spacing[10],
-  },
-  title: {
-    ...typography.h1,
-    color: colors.text.inverse,
-  },
-
   // Search bar — marginTop negativo = mitad en azul, mitad en blanco
   searchBar: {
     flexDirection: "row",
@@ -191,9 +178,9 @@ const styles = StyleSheet.create({
     height: spacing[3],
   },
 
-  // Card compacta: menos alto, menos padding
+  // Card compacta
   categoryCard: {
-    minHeight: spacing[12], // 48px base — el contenido determina la altura real
+    minHeight: spacing[12],
     padding: spacing[3],
   },
 });

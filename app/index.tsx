@@ -1,6 +1,6 @@
-import { Redirect } from 'expo-router';
+import { Redirect } from "expo-router";
 
 export default function Index() {
   // TODO: check auth state and redirect accordingly
-  return <Redirect href="/(client)/home" />;
+  return <Redirect href="/(professional)/home" />;
 }

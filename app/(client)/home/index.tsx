@@ -12,10 +12,14 @@ import {
   Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { FilterChip, SectionRow } from "@/shared/components";
+import {
+  AppHeader,
+  ScreenHero,
+  FilterChip,
+  SectionRow,
+} from "@/shared/components";
 import { ProfessionalCard } from "@/features/professionals/components/ProfessionalCard";
 import { SkeletonCard } from "@/features/professionals/components/SkeletonCard";
 import { PSYCHOLOGY_CATEGORIES } from "@/features/categories/types";
@@ -85,7 +89,6 @@ function SkeletonList() {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { professionals, isLoading, error, refetch } = useNearbyProfessionals();
   const [selectedCategory, setSelectedCategory] =
     useState<PsychologyCategoryId>("todos");
@@ -108,22 +111,27 @@ export default function HomeScreen() {
       distanceM={item.distanceM}
       isAvailable={item.isAvailable}
       layout="vertical"
-      onPress={() => router.push({ pathname: "/(client)/home/[id]", params: { id: item.id } })}
+      onPress={() =>
+        router.push({
+          pathname: "/(client)/home/[id]",
+          params: { id: item.id },
+        })
+      }
       onContact={() => handleContact(item.phone)}
     />
   );
 
   const listHeader = (
     <>
-      {/* ── HERO HEADER ────────────────────────────────────────────────── */}
-      <View style={[styles.hero, { paddingTop: insets.top + spacing[5] }]}>
-        <View>
-          <Text style={styles.welcomeLabel}>{strings.home.welcomeLabel}</Text>
-          <Text style={styles.userName}>Nombre Usuario</Text>
-        </View>
-      </View>
+      {/* ── HERO welcome con overlap para la search bar ────────────────── */}
+      <ScreenHero
+        variant="welcome"
+        overline={strings.home.welcomeLabel}
+        userName="Nombre Usuario"
+        withOverlap
+      />
 
-      {/* ── SEARCH BAR BUTTON ──────────────────────────────────────────── */}
+      {/* ── SEARCH BAR BUTTON (overlap sobre el hero) ──────────────────── */}
       <Pressable
         onPress={() => router.push("/(client)/search")}
         style={({ pressed }) => [
@@ -174,6 +182,7 @@ export default function HomeScreen() {
   if (error) {
     return (
       <View style={styles.screen}>
+        <AppHeader variant="blue" noBorder />
         <FlatList
           data={[]}
           renderItem={null}
@@ -188,6 +197,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.screen}>
+      <AppHeader variant="blue" noBorder />
       <FlatList
         data={isLoading ? [] : professionals}
         keyExtractor={(item) => item.id}
@@ -212,23 +222,6 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background.screen,
-  },
-
-  // Hero
-  hero: {
-    backgroundColor: colors.palette.blue700,
-    paddingHorizontal: spacing[4],
-    paddingBottom: spacing[10],
-  },
-  welcomeLabel: {
-    ...typography.overline,
-    color: colors.text.inverse,
-    textTransform: "uppercase",
-    marginBottom: spacing[1],
-  },
-  userName: {
-    ...typography.h2,
-    color: colors.text.inverse,
   },
 
   // Search bar
