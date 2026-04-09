@@ -15,6 +15,7 @@ import {
   colors, typography, spacing, layout, componentRadius,
 } from '@/shared/theme';
 import { strings } from '@/shared/utils/strings';
+import { useSaveProfessional } from '@/features/auth/hooks/useSaveProfessional';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ENUM DE CATEGORÍA
@@ -59,7 +60,32 @@ export default function ProfessionalFormScreen() {
   const [attendsOnline,    setAttendsOnline]    = useState(false);
   const [attendsPresencial,setAttendsPresencial]= useState(false);
 
+  const { saveProfessional, saving } = useSaveProfessional();
+
   const canSave = fullName.trim().length > 0 && category.length > 0;
+
+  const handleSave = async () => {
+    try {
+      await saveProfessional({
+        photoUri,
+        category,
+        fullName,
+        dni,
+        phone,
+        license,
+        description,
+        quote,
+        quoteAuthor,
+        specialty,
+        subSpecialties,
+        attendsOnline,
+        attendsPresencial,
+      });
+      router.push('/(auth)/ProfessionalLocationFormScreen');
+    } catch (err: any) {
+      Alert.alert('No pudimos guardar tu perfil', err?.message ?? 'Probá de nuevo.');
+    }
+  };
 
   // ── HANDLERS ─────────────────────────────────────────────────────────────
 
@@ -346,13 +372,13 @@ export default function ProfessionalFormScreen() {
         {/* ── GUARDAR ──────────────────────────────────────── */}
         <StickyBottomBar>
           <Button
-            label={strings.proSetup.saveCta}
+            label={saving ? 'Guardando...' : strings.proSetup.saveCta}
             variant="primary"
             size="lg"
             fullWidth
             uppercase
-            disabled={!canSave}
-            onPress={() => router.push('/(auth)/ProfessionalLocationFormScreen')}
+            disabled={!canSave || saving}
+            onPress={handleSave}
           />
         </StickyBottomBar>
 

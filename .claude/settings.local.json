@@ -17,7 +17,15 @@
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('version:', d.get\\('version'\\)\\)\")",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('hasBabelPlugin:', 'plugin.js' in str\\(d.get\\('files', []\\)\\)\\)\")",
       "mcp__ide__getDiagnostics",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(mkdir -p /tmp/tp-skill-inspect)",
+      "Read(//tmp/tp-skill-inspect/**)",
+      "Bash(ls -la /Users/jaledjara/TPtpTPPPTptp/tu-profesional/.env*)",
+      "Bash(git rm:*)",
+      "Bash(node:*)",
+      "Bash(find /Users/jaledjara/TPtpTPPPTptp/tu-profesional/src -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" \\\\\\) -exec grep -l \"router.replace\\\\|router.push\" {} \\\\;)",
+      "Bash(find /Users/jaledjara/TPtpTPPPTptp/tu-profesional/app -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" \\\\\\) -exec grep -l \"router.replace\\\\|router.push\" {} \\\\;)",
+      "Bash(npx supabase:*)"
     ]
   }
 }

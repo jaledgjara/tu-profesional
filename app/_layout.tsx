@@ -17,9 +17,23 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
+import { onAuthStateChange } from '@/shared/services/authService';
+import { useAuthStore } from '@/features/auth/store/authStore';
+
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const refresh = useAuthStore((s) => s.refresh);
+
+  // Inicializa la sesión al arrancar y se suscribe a cambios (login/logout/refresh).
+  useEffect(() => {
+    refresh();
+    const sub = onAuthStateChange(() => {
+      refresh();
+    });
+    return () => sub.unsubscribe();
+  }, [refresh]);
+
   const [fontsLoaded, fontError] = useFonts({
     BricolageGrotesque_400Regular,
     BricolageGrotesque_500Medium,

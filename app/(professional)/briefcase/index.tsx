@@ -3,13 +3,21 @@
 // Reutiliza ProfessionalBriefcaseScreen con showEditButton=true.
 // TODO: reemplazar id hardcodeado por el id del usuario autenticado.
 
-import { ProfessionalBriefcaseScreen } from '@/features/professionals/screens/ProfessionalBriefcaseScreen';
-import { useProfessionalDetail }       from '@/features/professionals/hooks/useProfessionalDetail';
+import { ProfessionalBriefcaseScreen } from "@/features/professionals/screens/ProfessionalBriefcaseScreen";
+import { useProfessionalDetail } from "@/features/professionals/hooks/useProfessionalDetail";
+import { ScrollView } from "react-native";
 
 export default function MyPortfolioScreen() {
   // TODO: obtener id desde el contexto de auth
-  const { professional, yearsExperience, description, quote, quoteAuthor, reviews, socialLinks } =
-    useProfessionalDetail('1');
+  const {
+    professional,
+    yearsExperience,
+    description,
+    quote,
+    quoteAuthor,
+    reviews,
+    socialLinks,
+  } = useProfessionalDetail("1");
 
   if (!professional) return null;
 

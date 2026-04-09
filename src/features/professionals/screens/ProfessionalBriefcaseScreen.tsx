@@ -35,7 +35,7 @@ import {
   componentRadius,
   getShadow,
 } from "@/shared/theme";
-import { strings, interpolate } from "@/shared/utils/strings";
+import { strings } from "@/shared/utils/strings";
 
 type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -159,7 +159,10 @@ export function ProfessionalBriefcaseScreen({
   };
 
   return (
-    <View style={styles.screen}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}>
       {/* ── HEADER 56pt fijo — unificado con el resto de la app ─────────── */}
       <AppHeader
         variant="blue"
@@ -210,11 +213,8 @@ export function ProfessionalBriefcaseScreen({
         <StatsRow stats={stats} />
       </View>
 
-      {/* ── SCROLL — contenido debajo del hero ──────────────────────────── */}
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
+      {/* ── SECCIONES — contenido debajo del hero/stats ─────────────────── */}
+      <View style={styles.sections}>
         {/* UBICACIÓN + MAPA */}
         <InfoSection title="Ubicación">
           <View style={styles.mapArea}>
@@ -401,8 +401,8 @@ export function ProfessionalBriefcaseScreen({
             </View>
           </InfoSection>
         )}
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -418,31 +418,31 @@ const styles = StyleSheet.create({
 
   // Hero (azul)
   hero: {
-    backgroundColor:   colors.palette.blue700,
+    backgroundColor: colors.palette.blue700,
     paddingHorizontal: spacing[5],
-    paddingTop:        spacing[5],
-    paddingBottom:     spacing[12], // espacio para el overlap de StatsRow
-    alignItems:        "center",
-    gap:               spacing[2],
+    paddingTop: spacing[5],
+    paddingBottom: spacing[12], // espacio para el overlap de StatsRow
+    alignItems: "center",
+    gap: spacing[2],
   },
   heroName: {
     ...typography.h2,
-    color:     colors.text.inverse,
+    color: colors.text.inverse,
     marginTop: spacing[1],
     textAlign: "center",
   },
   heroTitle: {
     ...typography.bodyMd,
-    color:     colors.text.inverse,
-    opacity:   0.85,
+    color: colors.text.inverse,
+    opacity: 0.85,
     textAlign: "center",
   },
   heroSpecialty: {
     ...typography.caption,
-    color:         colors.text.inverse,
-    opacity:       0.7,
+    color: colors.text.inverse,
+    opacity: 0.7,
     textTransform: "uppercase",
-    textAlign:     "center",
+    textAlign: "center",
   },
 
   // Stats (overlap)
@@ -457,13 +457,12 @@ const styles = StyleSheet.create({
   },
 
   // Scroll
-  scroll: {
-    flex: 1,
-  },
   scrollContent: {
+    paddingBottom: spacing[10],
+  },
+  sections: {
     paddingHorizontal: spacing[4],
     paddingTop: spacing[5],
-    paddingBottom: spacing[10],
     gap: spacing[4],
   },
 

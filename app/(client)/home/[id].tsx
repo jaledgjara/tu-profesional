@@ -5,14 +5,21 @@
 import { useRouter, useLocalSearchParams } from "expo-router";
 
 import { ProfessionalBriefcaseScreen } from "@/features/professionals/screens/ProfessionalBriefcaseScreen";
-import { useProfessionalDetail }       from "@/features/professionals/hooks/useProfessionalDetail";
+import { useProfessionalDetail } from "@/features/professionals/hooks/useProfessionalDetail";
 
 export default function ClientProfessionalProfile() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { professional, yearsExperience, description, quote, quoteAuthor, reviews, socialLinks } =
-    useProfessionalDetail(id);
+  const {
+    professional,
+    yearsExperience,
+    description,
+    quote,
+    quoteAuthor,
+    reviews,
+    socialLinks,
+  } = useProfessionalDetail(id);
 
   if (!professional) return null;
 

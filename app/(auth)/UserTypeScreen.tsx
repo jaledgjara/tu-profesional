@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,17 +13,26 @@ import {
 } from '@/shared/components';
 import { colors, spacing, layout } from '@/shared/theme';
 import { strings } from '@/shared/utils/strings';
+import { useCreateProfile } from '@/features/auth/hooks/useCreateProfile';
+import type { UserType } from '@/features/auth/Type/UserType';
 
-type Role = 'user' | 'professional' | null;
+type RoleSelection = UserType | null;
 
 export default function UserTypeScreen() {
-  const [role, setRole] = useState<Role>(null);
+  const [role, setRole] = useState<RoleSelection>(null);
+  const { createProfile, loading } = useCreateProfile();
 
-  const handleContinue = () => {
-    if (role === 'user') {
-      router.push('/(auth)/ClientLocationFormScreen');
-    } else {
-      router.push('/(auth)/ProfessionalFormScreen');
+  const handleContinue = async () => {
+    if (!role) return;
+    try {
+      await createProfile({ role });
+      if (role === 'client') {
+        router.replace('/(auth)/ClientLocationFormScreen');
+      } else {
+        router.replace('/(auth)/ProfessionalFormScreen');
+      }
+    } catch (err: any) {
+      Alert.alert('No pudimos guardar tu perfil', err?.message ?? 'Probá de nuevo.');
     }
   };
 
@@ -61,13 +70,13 @@ export default function UserTypeScreen() {
           <SelectableCard
             title={strings.auth.roleUser}
             description={strings.auth.roleUserDesc}
-            isSelected={role === 'user'}
-            onPress={() => setRole('user')}
+            isSelected={role === 'client'}
+            onPress={() => setRole('client')}
             icon={
               <Ionicons
                 name="person"
                 size={24}
-                color={role === 'user' ? colors.brand.primary : colors.icon.default}
+                color={role === 'client' ? colors.brand.primary : colors.icon.default}
               />
             }
           />
@@ -90,11 +99,11 @@ export default function UserTypeScreen() {
         <View style={styles.spacer} />
 
         <Button
-          label={strings.auth.continueCta}
+          label={loading ? 'Guardando...' : strings.auth.continueCta}
           variant="primary"
           size="lg"
           fullWidth
-          disabled={role === null}
+          disabled={role === null || loading}
           onPress={handleContinue}
         />
 

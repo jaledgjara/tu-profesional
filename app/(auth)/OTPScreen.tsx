@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import {
@@ -14,13 +14,41 @@ import {
 } from '@/shared/components';
 import { colors, spacing, layout } from '@/shared/theme';
 import { strings } from '@/shared/utils/strings';
+import { useVerifyOtp } from '@/features/auth/hooks/useVerifyOtp';
+import { useSendOtp } from '@/features/auth/hooks/useSendOtp';
 
 const OTP_LENGTH = 6;
 
 export default function OTPScreen() {
-  const [code, setCode] = useState('');
+  const params = useLocalSearchParams<{ email?: string }>();
+  const email = (params.email ?? '').toString();
 
+  const { verifyOtp, loading } = useVerifyOtp();
+  const { sendOtp, loading: resending } = useSendOtp();
+
+  const [code, setCode] = useState('');
   const isComplete = code.length === OTP_LENGTH;
+
+  const handleVerify = async () => {
+    try {
+      await verifyOtp(email, code);
+      // El guard de app/index.tsx decide a dónde mandar al user según el status.
+      router.replace('/');
+    } catch (err: any) {
+      Alert.alert('Código inválido', err?.message ?? 'Probá de nuevo.');
+      setCode('');
+    }
+  };
+
+  const handleResend = async () => {
+    try {
+      await sendOtp(email);
+      setCode('');
+      Alert.alert('Código reenviado', `Te mandamos un nuevo código a ${email}.`);
+    } catch (err: any) {
+      Alert.alert('No pudimos reenviar', err?.message ?? 'Probá de nuevo.');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -62,12 +90,13 @@ export default function OTPScreen() {
         {/* ── REENVIAR ─────────────────────────────────── */}
         <View style={styles.resendSection}>
           <Pressable
-            onPress={() => setCode('')}
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            onPress={handleResend}
+            disabled={resending}
+            style={({ pressed }) => ({ opacity: pressed || resending ? 0.6 : 1 })}
           >
             <Badge
               variant="tag"
-              label={strings.auth.otpResend}
+              label={resending ? 'Enviando...' : strings.auth.otpResend}
               icon={
                 <Ionicons
                   name="refresh"
@@ -82,12 +111,12 @@ export default function OTPScreen() {
         <View style={styles.spacer} />
 
         <Button
-          label={strings.auth.otpCta}
+          label={loading ? 'Verificando...' : strings.auth.otpCta}
           variant="primary"
           size="lg"
           fullWidth
-          disabled={!isComplete}
-          onPress={() => router.push('/(auth)/UserTypeScreen')}
+          disabled={!isComplete || loading}
+          onPress={handleVerify}
         />
 
       </View>

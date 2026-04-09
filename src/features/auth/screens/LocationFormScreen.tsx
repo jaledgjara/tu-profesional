@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +22,7 @@ import {
 import { colors, typography, spacing, layout } from "@/shared/theme";
 import { strings } from "@/shared/utils/strings";
 import { UserType } from "../Type/UserType";
+import { useSaveLocation } from "@/features/auth/hooks/useSaveLocation";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TIPOS
@@ -67,8 +69,40 @@ export default function LocationFormScreen({ mode }: LocationFormScreenProps) {
   const [floor, setFloor] = useState("");
   const [apartment, setApartment] = useState("");
   const [postalCode, setPostalCode] = useState("");
+  const [city, setCity] = useState("");
+
+  const { useGps, save, gpsLoading, saving } = useSaveLocation();
 
   const canContinue = street.trim().length > 0 && number.trim().length > 0;
+
+  const handleUseGps = async () => {
+    try {
+      const address = await useGps();
+      if (address.street)     setStreet(address.street);
+      if (address.number)     setNumber(address.number);
+      if (address.postalCode) setPostalCode(address.postalCode);
+      if (address.city)       setCity(address.city);
+    } catch (err: any) {
+      Alert.alert("No pudimos obtener tu ubicación", err?.message ?? "Probá de nuevo.");
+    }
+  };
+
+  const handleContinue = async () => {
+    try {
+      await save({
+        street, number,
+        floor:      floor || null,
+        apartment:  apartment || null,
+        postalCode: postalCode || null,
+        city:       city || null,
+        province:   "Mendoza",
+        country:    "Argentina",
+      });
+      router.replace(config.destination as never);
+    } catch (err: any) {
+      Alert.alert("No pudimos guardar tu ubicación", err?.message ?? "Probá de nuevo.");
+    }
+  };
 
   return (
     <View style={styles.safe}>
@@ -103,13 +137,16 @@ export default function LocationFormScreen({ mode }: LocationFormScreenProps) {
 
           {/* GPS */}
           <Button
-            label={`📍  ${strings.proSetup.useCurrentLocation}`}
+            label={
+              gpsLoading
+                ? "Obteniendo ubicación..."
+                : `📍  ${strings.proSetup.useCurrentLocation}`
+            }
             variant="ghost"
             size="md"
             fullWidth
-            onPress={() => {
-              /* expo-location: pedir permiso y autocompletar */
-            }}
+            disabled={gpsLoading}
+            onPress={handleUseGps}
           />
 
           {/* DETALLE */}
@@ -182,12 +219,12 @@ export default function LocationFormScreen({ mode }: LocationFormScreenProps) {
         {/* ── CONTINUAR ────────────────────────────────────── */}
         <StickyBottomBar transparent noBorder>
           <Button
-            label={strings.auth.continueCta}
+            label={saving ? "Guardando..." : strings.auth.continueCta}
             variant="primary"
             size="lg"
             fullWidth
-            disabled={!canContinue}
-            onPress={() => router.replace(config.destination as never)}
+            disabled={!canContinue || saving}
+            onPress={handleContinue}
           />
         </StickyBottomBar>
       </KeyboardAvoidingView>

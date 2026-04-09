@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,9 +13,20 @@ import {
 } from "@/shared/components";
 import { colors, spacing, layout } from "@/shared/theme";
 import { strings } from "@/shared/utils/strings";
+import { useSendOtp } from "@/features/auth/hooks/useSendOtp";
 
 export default function SignInScreen() {
   const [email, setEmail] = useState("");
+  const { sendOtp, loading } = useSendOtp();
+
+  const handleSendOtp = async () => {
+    try {
+      const normalized = await sendOtp(email);
+      router.push({ pathname: "/(auth)/OTPScreen", params: { email: normalized } });
+    } catch (err: any) {
+      Alert.alert("No pudimos enviar el código", err?.message ?? "Probá de nuevo.");
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={["bottom"]}>
@@ -58,12 +69,12 @@ export default function SignInScreen() {
         <View style={styles.spacer} />
 
         <Button
-          label={strings.auth.emailCta}
+          label={loading ? "Enviando..." : strings.auth.emailCta}
           variant="primary"
           size="lg"
           fullWidth
-          disabled={!email.trim()}
-          onPress={() => router.push("/(auth)/OTPScreen")}
+          disabled={!email.trim() || loading}
+          onPress={handleSendOtp}
         />
       </View>
     </SafeAreaView>
