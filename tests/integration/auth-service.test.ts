@@ -1,94 +1,84 @@
 // Tests de integración para authService
 // Testea: sendOtp, verifyOtp, getSession, signOut, onAuthStateChange
-// Usa InBucket (mail catcher local de Supabase) para extraer OTPs reales.
-// Corre contra Supabase local (supabase start)
+// Usa Mailpit (mail catcher local de Supabase) para extraer OTPs reales.
+// Cada test usa un email ÚNICO para evitar rate limiting de Supabase Auth.
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, afterAll } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { adminClient, SUPABASE_URL, ANON_KEY } from "../setup/supabase-admin";
-import {
-  getOtpFromInbucket,
-  purgeInbucketMailbox,
-} from "../setup/test-users";
+import { getOtpFromInbucket } from "../setup/test-users";
 
 const PREFIX = `auth-test-${Date.now()}`;
-const TEST_EMAIL = `${PREFIX}@test.local`;
+const userIds: string[] = [];
 
-let userId: string | null = null;
-
-// Cliente fresco para cada test (sin session previa)
 function freshClient() {
   return createClient(SUPABASE_URL, ANON_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
 
-beforeAll(async () => {
-  // Limpiar mailbox por si quedaron emails previos
-  await purgeInbucketMailbox(TEST_EMAIL);
-});
+// Cada test usa su propio email para evitar rate limits
+function uniqueEmail(tag: string) {
+  return `${PREFIX}-${tag}@test.local`;
+}
 
 afterAll(async () => {
-  // Limpiar user creado por OTP
-  if (userId) {
-    await adminClient.auth.admin.deleteUser(userId);
+  for (const id of userIds) {
+    await adminClient.auth.admin.deleteUser(id).catch(() => {});
   }
-  await purgeInbucketMailbox(TEST_EMAIL);
 });
 
 describe("authService — OTP flow", () => {
-  it("signInWithOtp envía email a InBucket", async () => {
+  it("signInWithOtp envía email a Mailpit", async () => {
+    const email = uniqueEmail("send");
     const client = freshClient();
     const { error } = await client.auth.signInWithOtp({
-      email: TEST_EMAIL,
+      email,
       options: { shouldCreateUser: true },
     });
 
     expect(error).toBeNull();
 
-    // Verificar que el email llegó a InBucket
-    const otp = await getOtpFromInbucket(TEST_EMAIL);
+    const otp = await getOtpFromInbucket(email);
     expect(otp).toMatch(/^\d{6}$/);
   });
 
   it("verifyOtp con código correcto devuelve session", async () => {
-    // Pedir nuevo OTP
-    await purgeInbucketMailbox(TEST_EMAIL);
+    const email = uniqueEmail("verify");
     const client = freshClient();
     await client.auth.signInWithOtp({
-      email: TEST_EMAIL,
+      email,
       options: { shouldCreateUser: true },
     });
 
-    const otp = await getOtpFromInbucket(TEST_EMAIL);
+    const otp = await getOtpFromInbucket(email);
 
     const { data, error } = await client.auth.verifyOtp({
-      email: TEST_EMAIL,
+      email,
       token: otp,
       type: "email",
     });
 
     expect(error).toBeNull();
     expect(data.session).not.toBeNull();
-    expect(data.session?.user.email).toBe(TEST_EMAIL);
+    expect(data.session?.user.email).toBe(email);
 
-    // Guardar userId para cleanup
-    userId = data.session?.user.id || null;
+    if (data.session?.user.id) userIds.push(data.session.user.id);
   });
 
   it("verifyOtp con código incorrecto falla", async () => {
-    await purgeInbucketMailbox(TEST_EMAIL);
+    const email = uniqueEmail("wrong");
     const client = freshClient();
     await client.auth.signInWithOtp({
-      email: TEST_EMAIL,
+      email,
       options: { shouldCreateUser: true },
     });
 
     // Esperar a que el email llegue pero usar código falso
-    await getOtpFromInbucket(TEST_EMAIL);
+    await getOtpFromInbucket(email);
 
     const { error } = await client.auth.verifyOtp({
-      email: TEST_EMAIL,
+      email,
       token: "000000",
       type: "email",
     });
@@ -99,45 +89,54 @@ describe("authService — OTP flow", () => {
 
 describe("authService — session management", () => {
   it("getSession después de login devuelve session activa", async () => {
-    await purgeInbucketMailbox(TEST_EMAIL);
+    const email = uniqueEmail("session");
     const client = freshClient();
     await client.auth.signInWithOtp({
-      email: TEST_EMAIL,
+      email,
       options: { shouldCreateUser: true },
     });
-    const otp = await getOtpFromInbucket(TEST_EMAIL);
-    await client.auth.verifyOtp({ email: TEST_EMAIL, token: otp, type: "email" });
+    const otp = await getOtpFromInbucket(email);
+    const { data } = await client.auth.verifyOtp({
+      email,
+      token: otp,
+      type: "email",
+    });
 
-    const { data } = await client.auth.getSession();
-    expect(data.session).not.toBeNull();
-    expect(data.session?.user.email).toBe(TEST_EMAIL);
+    if (data.session?.user.id) userIds.push(data.session.user.id);
+
+    const { data: sessionData } = await client.auth.getSession();
+    expect(sessionData.session).not.toBeNull();
+    expect(sessionData.session?.user.email).toBe(email);
   });
 
   it("signOut limpia la session", async () => {
-    await purgeInbucketMailbox(TEST_EMAIL);
+    const email = uniqueEmail("signout");
     const client = freshClient();
     await client.auth.signInWithOtp({
-      email: TEST_EMAIL,
+      email,
       options: { shouldCreateUser: true },
     });
-    const otp = await getOtpFromInbucket(TEST_EMAIL);
-    await client.auth.verifyOtp({ email: TEST_EMAIL, token: otp, type: "email" });
+    const otp = await getOtpFromInbucket(email);
+    const { data } = await client.auth.verifyOtp({
+      email,
+      token: otp,
+      type: "email",
+    });
 
-    // Verificar que hay session
+    if (data.session?.user.id) userIds.push(data.session.user.id);
+
     const before = await client.auth.getSession();
     expect(before.data.session).not.toBeNull();
 
-    // Sign out
     const { error } = await client.auth.signOut();
     expect(error).toBeNull();
 
-    // Session limpia
     const after = await client.auth.getSession();
     expect(after.data.session).toBeNull();
   });
 
   it("onAuthStateChange dispara callback en login", async () => {
-    await purgeInbucketMailbox(TEST_EMAIL);
+    const email = uniqueEmail("events");
     const client = freshClient();
 
     const events: string[] = [];
@@ -148,18 +147,21 @@ describe("authService — session management", () => {
     });
 
     await client.auth.signInWithOtp({
-      email: TEST_EMAIL,
+      email,
       options: { shouldCreateUser: true },
     });
-    const otp = await getOtpFromInbucket(TEST_EMAIL);
-    await client.auth.verifyOtp({ email: TEST_EMAIL, token: otp, type: "email" });
+    const otp = await getOtpFromInbucket(email);
+    const { data } = await client.auth.verifyOtp({
+      email,
+      token: otp,
+      type: "email",
+    });
 
-    // Dar tiempo al callback async
+    if (data.session?.user.id) userIds.push(data.session.user.id);
+
     await new Promise((r) => setTimeout(r, 500));
-
     subscription.unsubscribe();
 
-    // Debería haber disparado SIGNED_IN (y posiblemente INITIAL_SESSION)
     expect(events.some((e) => e === "SIGNED_IN")).toBe(true);
   });
 });
