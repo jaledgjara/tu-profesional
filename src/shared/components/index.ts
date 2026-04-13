@@ -19,3 +19,6 @@ export { Dropdown }       from './Dropdown';
 export { AnimatedTabBar } from './AnimatedTabBar';
 export { Switch }         from './Switch';
 export { ScreenHero }     from './ScreenHero';
+export { AppAlert }       from './AppAlert';
+export { Placeholder }    from './Placeholder';
+export { MiniLoader }     from './MiniLoader';

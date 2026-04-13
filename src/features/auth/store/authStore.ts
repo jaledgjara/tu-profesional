@@ -43,37 +43,46 @@ export const useAuthStore = create<AuthState>((set) => ({
   status:  "loading",
 
   refresh: async () => {
+    console.log("[authStore::refresh] Iniciando evaluación del estado de auth…");
     try {
       const session = await authService.getSession();
 
       if (!session) {
+        console.log("[authStore::refresh] Sin sesión → status: unauthenticated");
         set({ session: null, profile: null, status: "unauthenticated" });
         return;
       }
+      console.log("[authStore::refresh] Sesión activa — userId:", session.user.id, "| email:", session.user.email);
 
       const profile = await profileService.getProfile(session.user.id);
 
       if (!profile) {
+        console.log("[authStore::refresh] Sin profile → status: needs-role (el user debe elegir su rol)");
         set({ session, profile: null, status: "needs-role" });
         return;
       }
+      console.log("[authStore::refresh] Profile encontrado — rol:", profile.role);
 
       const hasLocation = await hasUserLocation(session.user.id);
       if (!hasLocation) {
+        console.log("[authStore::refresh] Sin ubicación → status: needs-location (el user debe completar su dirección)");
         set({ session, profile, status: "needs-location" });
         return;
       }
 
+      console.log("[authStore::refresh] Todo completo → status: authenticated ✓ — el guard enviará al home de rol:", profile.role);
       set({ session, profile, status: "authenticated" });
     } catch (err) {
-      console.error("[authStore.refresh]", err);
+      console.error("[authStore::refresh] Error inesperado durante el refresh — se fuerza unauthenticated:", err);
       // En caso de error de red, no rompemos la app: dejamos loading false.
       set({ status: "unauthenticated" });
     }
   },
 
   signOut: async () => {
+    console.log("[authStore::signOut] Limpiando store y cerrando sesión…");
     await authService.signOut();
     set({ session: null, profile: null, status: "unauthenticated" });
+    console.log("[authStore::signOut] Store limpio → status: unauthenticated");
   },
 }));

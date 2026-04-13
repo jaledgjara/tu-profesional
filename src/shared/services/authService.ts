@@ -12,35 +12,62 @@ import type { Session, AuthChangeEvent, Subscription } from "@supabase/supabase-
 import { supabase } from "@/shared/services/supabase";
 
 export async function sendOtp(email: string): Promise<void> {
+  console.log("[authService::sendOtp] Enviando OTP →", email);
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
       shouldCreateUser: true,
-      // No mandamos emailRedirectTo: así Supabase manda el token OTP en vez del magic link.
+      // OTP vs magic link NO depende de emailRedirectTo — depende del email template
+      // en el dashboard: Authentication → Email Templates → "Magic Link" → usar {{ .Token }}.
     },
   });
-  if (error) throw error;
+  if (error) {
+    console.error("[authService::sendOtp] Error de Supabase →", error.message);
+    throw error;
+  }
+  console.log("[authService::sendOtp] OTP enviado correctamente a", email);
 }
 
 export async function verifyOtp(email: string, token: string): Promise<Session> {
+  console.log("[authService::verifyOtp] Verificando código OTP para", email, "| longitud token:", token.length);
   const { data, error } = await supabase.auth.verifyOtp({
     email,
     token,
     type: "email",
   });
-  if (error) throw error;
-  if (!data.session) throw new Error("verifyOtp no devolvió sesión");
+  if (error) {
+    console.error("[authService::verifyOtp] Código incorrecto o expirado →", error.message);
+    throw error;
+  }
+  if (!data.session) {
+    console.error("[authService::verifyOtp] Supabase no devolvió sesión — data:", data);
+    throw new Error("verifyOtp no devolvió sesión");
+  }
+  console.log("[authService::verifyOtp] Sesión obtenida — userId:", data.session.user.id, "| expira:", new Date(data.session.expires_at! * 1000).toISOString());
   return data.session;
 }
 
 export async function signOut(): Promise<void> {
+  console.log("[authService::signOut] Cerrando sesión…");
   const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  if (error) {
+    console.error("[authService::signOut] Error al cerrar sesión →", error.message);
+    throw error;
+  }
+  console.log("[authService::signOut] Sesión cerrada correctamente.");
 }
 
 export async function getSession(): Promise<Session | null> {
   const { data, error } = await supabase.auth.getSession();
-  if (error) throw error;
+  if (error) {
+    console.error("[authService::getSession] Error al leer sesión →", error.message);
+    throw error;
+  }
+  if (data.session) {
+    console.log("[authService::getSession] Sesión activa — userId:", data.session.user.id);
+  } else {
+    console.log("[authService::getSession] No hay sesión activa.");
+  }
   return data.session;
 }
 
@@ -51,6 +78,10 @@ export async function getSession(): Promise<Session | null> {
 export function onAuthStateChange(
   callback: (event: AuthChangeEvent, session: Session | null) => void,
 ): Subscription {
-  const { data } = supabase.auth.onAuthStateChange(callback);
+  console.log("[authService::onAuthStateChange] Registrando listener de cambios de auth.");
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    console.log("[authService::onAuthStateChange] Evento:", event, "| userId:", session?.user.id ?? "—");
+    callback(event, session);
+  });
   return data.subscription;
 }

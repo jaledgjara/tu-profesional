@@ -17,12 +17,16 @@ export function useSendOtp() {
 
   const sendOtp = useCallback(async (rawEmail: string): Promise<string> => {
     const email = rawEmail.trim().toLowerCase();
+    console.log("[useSendOtp] Email normalizado →", email);
     if (!EMAIL_REGEX.test(email)) {
+      console.warn("[useSendOtp] Validación fallida — formato de email inválido:", email);
       throw new Error("Email inválido");
     }
     setLoading(true);
+    console.log("[useSendOtp] Llamando authService.sendOtp…");
     try {
       await sendOtpService(email);
+      console.log("[useSendOtp] OTP solicitado con éxito. El user debe revisar su correo.");
       return email;
     } finally {
       setLoading(false);

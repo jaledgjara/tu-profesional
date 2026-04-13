@@ -2,31 +2,31 @@
 // Sin esto: pantalla en blanco = mayor tasa de abandono.
 // Con esto: feedback inmediato de carga.
 
-import React, { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet } from 'react-native';
-import {
-  colors, spacing, componentRadius,
-} from '@/shared/theme';
+import React, { useEffect, useRef } from "react";
+import { View, Animated, StyleSheet, DimensionValue } from "react-native";
+import { colors, spacing, componentRadius, radius } from "@/shared/theme";
 
-const ShimmerBox: React.FC<{ width: number | string; height: number; borderRadius?: number }> = ({
-  width, height, borderRadius = componentRadius.sm,
-}) => {
+const ShimmerBox: React.FC<{
+  width: DimensionValue;
+  height: DimensionValue;
+  borderRadius?: number;
+}> = ({ width, height, borderRadius = radius.sm }) => {
   const opacity = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
     const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {
-          toValue:         0.9,
-          duration:        700,
+          toValue: 0.9,
+          duration: 700,
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
-          toValue:         0.3,
-          duration:        700,
+          toValue: 0.3,
+          duration: 700,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
     anim.start();
     return () => anim.stop();
@@ -58,33 +58,37 @@ export const SkeletonCard: React.FC = () => (
     </View>
     {/* Tags */}
     <View style={styles.tagsRow}>
-      <ShimmerBox width={70}  height={24} borderRadius={componentRadius.badge} />
-      <ShimmerBox width={50}  height={24} borderRadius={componentRadius.badge} />
-      <ShimmerBox width={80}  height={24} borderRadius={componentRadius.badge} />
+      <ShimmerBox width={70} height={24} borderRadius={componentRadius.badge} />
+      <ShimmerBox width={50} height={24} borderRadius={componentRadius.badge} />
+      <ShimmerBox width={80} height={24} borderRadius={componentRadius.badge} />
     </View>
     {/* Button */}
-    <ShimmerBox width="100%" height={44} borderRadius={componentRadius.button} />
+    <ShimmerBox
+      width="100%"
+      height={44}
+      borderRadius={componentRadius.button}
+    />
   </View>
 );
 
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.background.card,
-    borderRadius:    componentRadius.card,
-    padding:         spacing[4],
-    gap:             spacing[3],
+    borderRadius: componentRadius.card,
+    padding: spacing[4],
+    gap: spacing[3],
   },
   topRow: {
-    flexDirection: 'row',
-    gap:           spacing[3],
+    flexDirection: "row",
+    gap: spacing[3],
   },
   infoCol: {
     flex: 1,
-    gap:  spacing[1.5],
+    gap: spacing[1.5],
     paddingTop: spacing[1],
   },
   tagsRow: {
-    flexDirection: 'row',
-    gap:           spacing[1.5],
+    flexDirection: "row",
+    gap: spacing[1.5],
   },
 });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,13 +6,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  Alert,
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import {
   AppHeader,
+  AppAlert,
   IconButton,
   ScreenTitle,
   TextInput,
@@ -28,8 +28,11 @@ import { useSaveLocation } from "@/features/auth/hooks/useSaveLocation";
 // TIPOS
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Solo client y professional usan esta screen — admin se crea desde Dashboard. */
+type LocationMode = Exclude<UserType, "admin">;
+
 interface LocationFormScreenProps {
-  mode: UserType;
+  mode: LocationMode;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -38,28 +41,28 @@ interface LocationFormScreenProps {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MODE_CONFIG: Record<
-  UserType,
+  LocationMode,
   {
     title: string;
     description: string;
-    destination: string;
   }
 > = {
   client: {
     title: strings.auth.clientLocationTitle,
     description: strings.auth.clientLocationDesc,
-    destination: "/(client)/home",
   },
   professional: {
     title: strings.auth.proLocationTitle,
     description: strings.auth.proLocationDesc,
-    destination: "/(professional)/home",
   },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPONENTE
 // ─────────────────────────────────────────────────────────────────────────────
+
+interface AlertState { visible: boolean; title: string; message: string; }
+const ALERT_HIDDEN: AlertState = { visible: false, title: "", message: "" };
 
 export default function LocationFormScreen({ mode }: LocationFormScreenProps) {
   const config = MODE_CONFIG[mode];
@@ -71,19 +74,22 @@ export default function LocationFormScreen({ mode }: LocationFormScreenProps) {
   const [postalCode, setPostalCode] = useState("");
   const [city, setCity] = useState("");
 
-  const { useGps, save, gpsLoading, saving } = useSaveLocation();
+  const { fetchGpsAddress, save, gpsLoading, saving } = useSaveLocation();
+  const [alert, setAlert] = useState<AlertState>(ALERT_HIDDEN);
+  const dismissAlert = useCallback(() => setAlert(ALERT_HIDDEN), []);
 
   const canContinue = street.trim().length > 0 && number.trim().length > 0;
 
   const handleUseGps = async () => {
     try {
-      const address = await useGps();
+      const address = await fetchGpsAddress();
       if (address.street)     setStreet(address.street);
       if (address.number)     setNumber(address.number);
       if (address.postalCode) setPostalCode(address.postalCode);
       if (address.city)       setCity(address.city);
-    } catch (err: any) {
-      Alert.alert("No pudimos obtener tu ubicación", err?.message ?? "Probá de nuevo.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : strings.auth.alertGenericMsg;
+      setAlert({ visible: true, title: strings.auth.alertGpsErrorTitle, message: msg });
     }
   };
 
@@ -98,9 +104,10 @@ export default function LocationFormScreen({ mode }: LocationFormScreenProps) {
         province:   "Mendoza",
         country:    "Argentina",
       });
-      router.replace(config.destination as never);
-    } catch (err: any) {
-      Alert.alert("No pudimos guardar tu ubicación", err?.message ?? "Probá de nuevo.");
+      router.replace('/');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : strings.auth.alertGenericMsg;
+      setAlert({ visible: true, title: strings.auth.alertLocationErrorTitle, message: msg });
     }
   };
 
@@ -228,6 +235,15 @@ export default function LocationFormScreen({ mode }: LocationFormScreenProps) {
           />
         </StickyBottomBar>
       </KeyboardAvoidingView>
+
+      <AppAlert
+        visible={alert.visible}
+        icon={<Ionicons name="alert-circle-outline" size={28} color={colors.status.error} />}
+        title={alert.title}
+        message={alert.message}
+        dismissLabel={strings.auth.alertClose}
+        onDismiss={dismissAlert}
+      />
     </View>
   );
 }

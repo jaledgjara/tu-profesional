@@ -39,6 +39,21 @@ export const strings = {
     roleProDesc: "Quiero ofrecer mis servicios y conectar con nuevos clientes.",
     stepIndicator: "PASO {current} DE {total}",
     continueCta: "Continuar",
+
+    // Alerts de auth
+    alertClose:              "Cerrar",
+    alertSendErrorTitle:     "No pudimos enviar el código",
+    alertVerifyErrorTitle:   "Código inválido",
+    alertResendCooldownTitle: "Esperá un momento",
+    alertResendCooldownMsg:  "Podés reenviar el código en {seconds} segundos.",
+    alertResendSuccessTitle: "Código reenviado",
+    alertResendSuccessMsg:   "Te mandamos un nuevo código a {email}.",
+    alertResendErrorTitle:   "No pudimos reenviar",
+    alertProfileErrorTitle:  "No pudimos guardar tu perfil",
+    alertLocationErrorTitle: "No pudimos guardar tu ubicación",
+    alertGpsErrorTitle:      "No pudimos obtener tu ubicación",
+    alertProfessionalErrorTitle: "No pudimos guardar tu perfil",
+    alertGenericMsg:         "Probá de nuevo.",
   },
 
   // HOME (usuario)
@@ -117,6 +132,8 @@ export const strings = {
     moreOptions: "Más opciones",
     mockEmail: "miNombre@email.com",
     mockName: "Nombre Usuario",
+    logoutAlertTitle: "¿Cerrar sesión?",
+    logoutAlertMessage: "Vas a tener que iniciar sesión de nuevo para volver a entrar.",
   },
 
   // PERFIL (profesional — vista propia)
@@ -137,6 +154,8 @@ export const strings = {
     logout: "Cerrar sesión",
     edit: "EDITAR",
     verifiedBadge: "MATRÍCULA VERIFICADA",
+    logoutAlertTitle: "¿Cerrar sesión?",
+    logoutAlertMessage: "Vas a tener que iniciar sesión de nuevo. Tu perfil seguirá visible para los pacientes.",
   },
 
   // DASHBOARD (profesional)

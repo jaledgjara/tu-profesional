@@ -1,11 +1,12 @@
-import { useState } from "react";
-import { View, StyleSheet, Alert } from "react-native";
+import { useState, useCallback } from "react";
+import { View, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import {
   AppHeader,
+  AppAlert,
   IconButton,
   ScreenTitle,
   TextInput,
@@ -15,16 +16,30 @@ import { colors, spacing, layout } from "@/shared/theme";
 import { strings } from "@/shared/utils/strings";
 import { useSendOtp } from "@/features/auth/hooks/useSendOtp";
 
+interface AlertState {
+  visible: boolean;
+  title: string;
+  message: string;
+}
+
+const ALERT_HIDDEN: AlertState = { visible: false, title: "", message: "" };
+
 export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const { sendOtp, loading } = useSendOtp();
+  const [alert, setAlert] = useState<AlertState>(ALERT_HIDDEN);
+  const dismissAlert = useCallback(() => setAlert(ALERT_HIDDEN), []);
 
   const handleSendOtp = async () => {
     try {
       const normalized = await sendOtp(email);
-      router.push({ pathname: "/(auth)/OTPScreen", params: { email: normalized } });
-    } catch (err: any) {
-      Alert.alert("No pudimos enviar el código", err?.message ?? "Probá de nuevo.");
+      router.push({
+        pathname: "/(auth)/OTPScreen",
+        params: { email: normalized },
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : strings.auth.alertGenericMsg;
+      setAlert({ visible: true, title: strings.auth.alertSendErrorTitle, message: msg });
     }
   };
 
@@ -77,6 +92,16 @@ export default function SignInScreen() {
           onPress={handleSendOtp}
         />
       </View>
+
+      {/* ── ALERT ──────────────────────────────────────── */}
+      <AppAlert
+        visible={alert.visible}
+        icon={<Ionicons name="alert-circle-outline" size={28} color={colors.status.error} />}
+        title={alert.title}
+        message={alert.message}
+        dismissLabel={strings.auth.alertClose}
+        onDismiss={dismissAlert}
+      />
     </SafeAreaView>
   );
 }
@@ -90,6 +115,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: layout.screenPaddingH,
     paddingTop: spacing[6],
+    paddingBottom: spacing[10],
   },
   spacer: {
     flex: 1,

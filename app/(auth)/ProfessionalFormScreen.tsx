@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, KeyboardAvoidingView, Platform,
-  Switch, Pressable, StyleSheet, Alert,
+  Switch, Pressable, StyleSheet,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
 import {
-  AppHeader, IconButton, Avatar, TextInput,
+  AppHeader, AppAlert, IconButton, Avatar, TextInput,
   Dropdown, Button, StickyBottomBar,
 } from '@/shared/components';
 import {
@@ -34,7 +34,14 @@ const CATEGORY_OPTIONS: { label: string; value: ProfessionalCategory }[] = [
 // SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface AlertState { visible: boolean; title: string; message: string; }
+const ALERT_HIDDEN: AlertState = { visible: false, title: "", message: "" };
+
 export default function ProfessionalFormScreen() {
+
+  // ── ALERT ───────────────────────────────────────────────────────────────
+  const [alert, setAlert] = useState<AlertState>(ALERT_HIDDEN);
+  const dismissAlert = useCallback(() => setAlert(ALERT_HIDDEN), []);
 
   // ── FOTO ─────────────────────────────────────────────────────────────────
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -52,6 +59,13 @@ export default function ProfessionalFormScreen() {
   // ── INSPIRACIÓN ──────────────────────────────────────────────────────────
   const [quote,       setQuote]       = useState('');
   const [quoteAuthor, setQuoteAuthor] = useState('');
+
+  // ── REDES SOCIALES ────────────────────────────────────────────────────────
+  const [socialWhatsapp,  setSocialWhatsapp]  = useState('');
+  const [socialInstagram, setSocialInstagram] = useState('');
+  const [socialLinkedin,  setSocialLinkedin]  = useState('');
+  const [socialTwitter,   setSocialTwitter]   = useState('');
+  const [socialTiktok,    setSocialTiktok]    = useState('');
 
   // ── PERSONALIZACIÓN ──────────────────────────────────────────────────────
   const [specialty,        setSpecialty]        = useState('');
@@ -80,10 +94,20 @@ export default function ProfessionalFormScreen() {
         subSpecialties,
         attendsOnline,
         attendsPresencial,
+        socialWhatsapp,
+        socialInstagram,
+        socialLinkedin,
+        socialTwitter,
+        socialTiktok,
       });
-      router.push('/(auth)/ProfessionalLocationFormScreen');
-    } catch (err: any) {
-      Alert.alert('No pudimos guardar tu perfil', err?.message ?? 'Probá de nuevo.');
+      // Navegación directa — no a través del guard. Razón: el guard manda
+      // needs-location+professional a ESTA screen, así que `router.replace('/')`
+      // causaría un loop. La ubicación es el paso siguiente; al guardarse,
+      // useSaveLocation llama a refresh() y el guard resuelve a home.
+      router.replace('/(auth)/ProfessionalLocationFormScreen');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : strings.auth.alertGenericMsg;
+      setAlert({ visible: true, title: strings.auth.alertProfessionalErrorTitle, message: msg });
     }
   };
 
@@ -92,10 +116,11 @@ export default function ProfessionalFormScreen() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
-        strings.proSetup.profileTitle,
-        strings.proSetup.photoPermissionMsg,
-      );
+      setAlert({
+        visible: true,
+        title: strings.proSetup.profileTitle,
+        message: strings.proSetup.photoPermissionMsg,
+      });
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -268,7 +293,72 @@ export default function ProfessionalFormScreen() {
             returnKeyType="done"
           />
 
-          {/* ── 5. PERSONALIZACIÓN ───────────────────────────── */}
+          {/* ── 5. REDES SOCIALES ───────────────────────────── */}
+          <Text style={[styles.sectionLabel, styles.sectionLabelTop]}>
+            {strings.proSetup.socialNetworks}
+          </Text>
+
+          <TextInput
+            label="WHATSAPP"
+            placeholder="+54 9 261 000-0000"
+            value={socialWhatsapp}
+            onChangeText={setSocialWhatsapp}
+            keyboardType="phone-pad"
+            returnKeyType="next"
+            leftIcon={
+              <Ionicons name="logo-whatsapp" size={18} color={colors.text.secondary} />
+            }
+          />
+
+          <TextInput
+            label="INSTAGRAM"
+            placeholder="@tu.usuario"
+            value={socialInstagram}
+            onChangeText={setSocialInstagram}
+            autoCapitalize="none"
+            returnKeyType="next"
+            leftIcon={
+              <Ionicons name="logo-instagram" size={18} color={colors.text.secondary} />
+            }
+          />
+
+          <TextInput
+            label="LINKEDIN"
+            placeholder="linkedin.com/in/tu-perfil"
+            value={socialLinkedin}
+            onChangeText={setSocialLinkedin}
+            autoCapitalize="none"
+            returnKeyType="next"
+            leftIcon={
+              <Ionicons name="logo-linkedin" size={18} color={colors.text.secondary} />
+            }
+          />
+
+          <TextInput
+            label="TWITTER / X"
+            placeholder="@tu.usuario"
+            value={socialTwitter}
+            onChangeText={setSocialTwitter}
+            autoCapitalize="none"
+            returnKeyType="next"
+            leftIcon={
+              <Ionicons name="logo-twitter" size={18} color={colors.text.secondary} />
+            }
+          />
+
+          <TextInput
+            label="TIKTOK"
+            placeholder="@tu.usuario"
+            value={socialTiktok}
+            onChangeText={setSocialTiktok}
+            autoCapitalize="none"
+            returnKeyType="done"
+            leftIcon={
+              <Ionicons name="logo-tiktok" size={18} color={colors.text.secondary} />
+            }
+          />
+
+          {/* ── 6. PERSONALIZACIÓN ───────────────────────────── */}
           <Text style={[styles.sectionLabel, styles.sectionLabelTop]}>
             {strings.proSetup.personalization}
           </Text>
@@ -383,6 +473,15 @@ export default function ProfessionalFormScreen() {
         </StickyBottomBar>
 
       </KeyboardAvoidingView>
+
+      <AppAlert
+        visible={alert.visible}
+        icon={<Ionicons name="alert-circle-outline" size={28} color={colors.status.error} />}
+        title={alert.title}
+        message={alert.message}
+        dismissLabel={strings.auth.alertClose}
+        onDismiss={dismissAlert}
+      />
     </View>
   );
 }

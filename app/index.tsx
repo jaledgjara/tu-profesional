@@ -1,29 +1,26 @@
 // Auth guard del root. Decide a dónde mandar al user en función del status
 // del authStore. El status se calcula en authStore.refresh() llamando a
 // getSession + getProfile + hasUserLocation.
+//
+// Patrón de navegación: las screens de auth hacen `router.replace('/')` al
+// terminar su paso — este guard recalcula el destino en función del nuevo
+// status. Esto centraliza TODA la lógica de routing en un solo lugar.
+// Excepción: ProfessionalFormScreen → ProfessionalLocationFormScreen
+// (ver comentario inline).
 
 import { Redirect } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { colors } from "@/shared/theme";
+import { MiniLoader } from "@/shared/components";
 
 export default function Index() {
   const status  = useAuthStore((s) => s.status);
   const profile = useAuthStore((s) => s.profile);
 
+  console.log("[guard] Evaluando redirect — status:", status, "| rol:", profile?.role ?? "—");
+
   if (status === "loading") {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: colors.background.screen,
-        }}>
-        <ActivityIndicator color={colors.brand.primary} />
-      </View>
-    );
+    return <MiniLoader />;
   }
 
   if (status === "unauthenticated") {

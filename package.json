@@ -10,7 +10,11 @@
     "build:dev:ios": "eas build --platform ios --profile development",
     "build:dev:android": "eas build --platform android --profile development",
     "build:preview": "eas build --platform all --profile preview",
-    "build:prod": "eas build --platform all --profile production"
+    "build:prod": "eas build --platform all --profile production",
+    "test:db": "supabase test db",
+    "test:integration": "vitest run --config vitest.config.ts",
+    "test:integration:watch": "vitest --config vitest.config.ts",
+    "test": "npm run test:db && npm run test:integration"
   },
   "dependencies": {
     "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
@@ -44,7 +48,9 @@
     "@types/react": "~19.1.0",
     "@types/react-native": "^0.72.8",
     "babel-plugin-module-resolver": "^5.0.3",
-    "typescript": "~5.9.2"
+    "dotenv": "^17.4.2",
+    "typescript": "~5.9.2",
+    "vitest": "^4.1.4"
   },
   "private": true
 }

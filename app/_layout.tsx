@@ -25,10 +25,11 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const refresh = useAuthStore((s) => s.refresh);
 
-  // Inicializa la sesión al arrancar y se suscribe a cambios (login/logout/refresh).
+  // Se suscribe a cambios de auth (login/logout/token refresh).
+  // Supabase emite INITIAL_SESSION al subscribirse, así que no hace falta
+  // llamar a refresh() aparte — eso causaba doble llamada en el arranque.
   useEffect(() => {
-    refresh();
-    const sub = onAuthStateChange(() => {
+    const sub = onAuthStateChange((_event, _session) => {
       refresh();
     });
     return () => sub.unsubscribe();

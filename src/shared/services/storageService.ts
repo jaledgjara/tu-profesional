@@ -19,15 +19,18 @@ export async function uploadProfessionalPhoto(
   userId: string,
   localUri: string,
 ): Promise<string> {
+  console.log("[storageService::uploadProfessionalPhoto] Iniciando upload de foto — userId:", userId);
   // En RN no podemos usar `fetch(uri).blob()` directo en todos los casos,
   // pero arrayBuffer funciona bien con file:// URIs en Expo.
   const response = await fetch(localUri);
   const arrayBuffer = await response.arrayBuffer();
+  console.log("[storageService::uploadProfessionalPhoto] ArrayBuffer listo — tamaño:", arrayBuffer.byteLength, "bytes");
 
   // Inferimos extensión del URI (jpg por default).
   const extMatch = localUri.match(/\.(\w+)(?:\?|$)/);
   const ext = (extMatch?.[1] ?? "jpg").toLowerCase();
   const path = `${userId}/avatar.${ext}`;
+  console.log("[storageService::uploadProfessionalPhoto] Path destino en Storage:", `${BUCKET}/${path}`, "| contentType:", `image/${ext === "jpg" ? "jpeg" : ext}`);
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
@@ -35,8 +38,12 @@ export async function uploadProfessionalPhoto(
       contentType: `image/${ext === "jpg" ? "jpeg" : ext}`,
       upsert: true,
     });
-  if (uploadError) throw uploadError;
+  if (uploadError) {
+    console.error("[storageService::uploadProfessionalPhoto] Error al subir la foto →", uploadError.message);
+    throw uploadError;
+  }
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  console.log("[storageService::uploadProfessionalPhoto] Foto subida correctamente — URL pública:", data.publicUrl);
   return data.publicUrl;
 }

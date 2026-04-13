@@ -23,7 +23,7 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
       style={[
         styles.container,
         {
-          paddingBottom:    insets.bottom + spacing[3],
+          paddingBottom:    insets.bottom + spacing[10],
           backgroundColor:  transparent ? colors.palette.transparent : colors.background.card,
           borderTopWidth:   noBorder ? 0 : 1,
           borderTopColor:   colors.border.subtle,

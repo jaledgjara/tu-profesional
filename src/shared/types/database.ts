@@ -22,12 +22,19 @@ export type Database = {
           created_at: string
           description: string | null
           dni: string | null
+          full_name: string | null
           id: string
           is_active: boolean
           license: string | null
+          phone: string | null
           photo_url: string | null
           quote: string | null
           quote_author: string | null
+          social_instagram: string | null
+          social_linkedin: string | null
+          social_tiktok: string | null
+          social_twitter: string | null
+          social_whatsapp: string | null
           specialty: string | null
           sub_specialties: string[] | null
           updated_at: string
@@ -39,12 +46,19 @@ export type Database = {
           created_at?: string
           description?: string | null
           dni?: string | null
+          full_name?: string | null
           id: string
           is_active?: boolean
           license?: string | null
+          phone?: string | null
           photo_url?: string | null
           quote?: string | null
           quote_author?: string | null
+          social_instagram?: string | null
+          social_linkedin?: string | null
+          social_tiktok?: string | null
+          social_twitter?: string | null
+          social_whatsapp?: string | null
           specialty?: string | null
           sub_specialties?: string[] | null
           updated_at?: string
@@ -56,12 +70,19 @@ export type Database = {
           created_at?: string
           description?: string | null
           dni?: string | null
+          full_name?: string | null
           id?: string
           is_active?: boolean
           license?: string | null
+          phone?: string | null
           photo_url?: string | null
           quote?: string | null
           quote_author?: string | null
+          social_instagram?: string | null
+          social_linkedin?: string | null
+          social_tiktok?: string | null
+          social_twitter?: string | null
+          social_whatsapp?: string | null
           specialty?: string | null
           sub_specialties?: string[] | null
           updated_at?: string
@@ -79,25 +100,22 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
-          full_name: string | null
+          email: string | null
           id: string
-          phone: string | null
           role: string
           updated_at: string
         }
         Insert: {
           created_at?: string
-          full_name?: string | null
+          email?: string | null
           id: string
-          phone?: string | null
           role: string
           updated_at?: string
         }
         Update: {
           created_at?: string
-          full_name?: string | null
+          email?: string | null
           id?: string
-          phone?: string | null
           role?: string
           updated_at?: string
         }

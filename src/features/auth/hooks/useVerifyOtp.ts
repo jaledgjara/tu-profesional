@@ -17,11 +17,17 @@ export function useVerifyOtp() {
 
   const verifyOtp = useCallback(
     async (email: string, code: string): Promise<void> => {
-      if (!email) throw new Error("Falta el email del paso anterior");
+      if (!email) {
+        console.error("[useVerifyOtp] Email ausente — el usuario llegó a OTP sin completar el paso anterior.");
+        throw new Error("Falta el email del paso anterior");
+      }
+      console.log("[useVerifyOtp] Verificando código OTP — email:", email, "| dígitos ingresados:", code.length);
       setLoading(true);
       try {
         await verifyOtpService(email, code);
+        console.log("[useVerifyOtp] Código correcto. Refrescando authStore…");
         await refresh();
+        console.log("[useVerifyOtp] authStore actualizado. El guard redirigirá según el status.");
       } finally {
         setLoading(false);
       }

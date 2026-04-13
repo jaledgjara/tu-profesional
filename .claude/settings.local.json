@@ -25,7 +25,13 @@
       "Bash(node:*)",
       "Bash(find /Users/jaledjara/TPtpTPPPTptp/tu-profesional/src -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" \\\\\\) -exec grep -l \"router.replace\\\\|router.push\" {} \\\\;)",
       "Bash(find /Users/jaledjara/TPtpTPPPTptp/tu-profesional/app -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" \\\\\\) -exec grep -l \"router.replace\\\\|router.push\" {} \\\\;)",
-      "Bash(npx supabase:*)"
+      "Bash(npx supabase:*)",
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(supabase status:*)",
+      "Bash(supabase --version)",
+      "Bash(npx vitest:*)",
+      "Bash(supabase start:*)"
     ]
   }
 }

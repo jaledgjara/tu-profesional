@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import {
   AppHeader,
+  AppAlert,
   IconButton,
   ScreenTitle,
   SelectableCard,
@@ -18,21 +19,23 @@ import type { UserType } from '@/features/auth/Type/UserType';
 
 type RoleSelection = UserType | null;
 
+interface AlertState { visible: boolean; title: string; message: string; }
+const ALERT_HIDDEN: AlertState = { visible: false, title: "", message: "" };
+
 export default function UserTypeScreen() {
   const [role, setRole] = useState<RoleSelection>(null);
   const { createProfile, loading } = useCreateProfile();
+  const [alert, setAlert] = useState<AlertState>(ALERT_HIDDEN);
+  const dismissAlert = useCallback(() => setAlert(ALERT_HIDDEN), []);
 
   const handleContinue = async () => {
     if (!role) return;
     try {
       await createProfile({ role });
-      if (role === 'client') {
-        router.replace('/(auth)/ClientLocationFormScreen');
-      } else {
-        router.replace('/(auth)/ProfessionalFormScreen');
-      }
-    } catch (err: any) {
-      Alert.alert('No pudimos guardar tu perfil', err?.message ?? 'Probá de nuevo.');
+      router.replace('/');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : strings.auth.alertGenericMsg;
+      setAlert({ visible: true, title: strings.auth.alertProfileErrorTitle, message: msg });
     }
   };
 
@@ -108,6 +111,15 @@ export default function UserTypeScreen() {
         />
 
       </View>
+
+      <AppAlert
+        visible={alert.visible}
+        icon={<Ionicons name="alert-circle-outline" size={28} color={colors.status.error} />}
+        title={alert.title}
+        message={alert.message}
+        dismissLabel={strings.auth.alertClose}
+        onDismiss={dismissAlert}
+      />
     </SafeAreaView>
   );
 }

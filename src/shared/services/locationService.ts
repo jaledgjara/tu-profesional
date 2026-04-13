@@ -36,15 +36,21 @@ export interface AddressFields {
 
 /** Pide permiso de foreground. Devuelve `true` si quedó granted. */
 export async function requestPermission(): Promise<boolean> {
+  console.log("[locationService::requestPermission] Solicitando permiso de ubicación foreground…");
   const { status } = await Location.requestForegroundPermissionsAsync();
-  return status === "granted";
+  const granted = status === "granted";
+  console.log("[locationService::requestPermission] Resultado:", granted ? "CONCEDIDO" : "DENEGADO", `(status: ${status})`);
+  return granted;
 }
 
 export async function getCurrentCoords(): Promise<Coords> {
+  console.log("[locationService::getCurrentCoords] Obteniendo posición GPS (accuracy: Balanced)…");
   const pos = await Location.getCurrentPositionAsync({
     accuracy: Location.Accuracy.Balanced,
   });
-  return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+  const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+  console.log("[locationService::getCurrentCoords] Coordenadas obtenidas →", `lat: ${coords.lat}, lng: ${coords.lng}`, `| precisión: ${pos.coords.accuracy?.toFixed(0) ?? "?"} m`);
+  return coords;
 }
 
 /**
@@ -52,13 +58,17 @@ export async function getCurrentCoords(): Promise<Coords> {
  * Devuelve `null` si el OS no logra resolver la dirección.
  */
 export async function reverseGeocode(coords: Coords): Promise<Partial<AddressFields> | null> {
+  console.log("[locationService::reverseGeocode] Reverse geocoding →", `lat: ${coords.lat}, lng: ${coords.lng}`);
   const results = await Location.reverseGeocodeAsync({
     latitude:  coords.lat,
     longitude: coords.lng,
   });
   const r = results[0];
-  if (!r) return null;
-  return {
+  if (!r) {
+    console.warn("[locationService::reverseGeocode] El OS no pudo resolver la dirección para estas coordenadas.");
+    return null;
+  }
+  const address = {
     street:     r.street ?? "",
     number:     r.streetNumber ?? "",
     postalCode: r.postalCode ?? "",
@@ -66,6 +76,8 @@ export async function reverseGeocode(coords: Coords): Promise<Partial<AddressFie
     province:   r.region ?? "Mendoza",
     country:    r.country ?? "Argentina",
   };
+  console.log("[locationService::reverseGeocode] Dirección resuelta →", `${address.street} ${address.number}, ${address.city}, ${address.province}`);
+  return address;
 }
 
 /**
@@ -84,10 +96,16 @@ export async function geocodeAddress(
     .filter(Boolean)
     .join(", ");
 
+  console.log("[locationService::geocodeAddress] Forward geocoding query →", `"${query}"`);
   const results = await Location.geocodeAsync(query);
   const r = results[0];
-  if (!r) return null;
-  return { lat: r.latitude, lng: r.longitude };
+  if (!r) {
+    console.warn("[locationService::geocodeAddress] No se encontraron coordenadas para la dirección ingresada.");
+    return null;
+  }
+  const coords = { lat: r.latitude, lng: r.longitude };
+  console.log("[locationService::geocodeAddress] Coordenadas resueltas →", `lat: ${coords.lat}, lng: ${coords.lng}`);
+  return coords;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -98,6 +116,7 @@ export async function upsertUserLocation(
   coords: Coords,
   address: AddressFields,
 ): Promise<UserLocation> {
+  console.log("[locationService::upsertUserLocation] Llamando RPC upsert_user_location →", `lat: ${coords.lat}, lng: ${coords.lng} | ${address.street} ${address.number}, ${address.city ?? "—"}, ${address.province ?? "Mendoza"}`);
   const { data, error } = await supabase.rpc("upsert_user_location", {
     p_lat:         coords.lat,
     p_lng:         coords.lng,
@@ -110,7 +129,11 @@ export async function upsertUserLocation(
     p_province:    address.province ?? "Mendoza",
     p_country:     address.country ?? "Argentina",
   });
-  if (error) throw error;
+  if (error) {
+    console.error("[locationService::upsertUserLocation] Error en RPC →", error.message);
+    throw error;
+  }
+  console.log("[locationService::upsertUserLocation] Ubicación persistida correctamente.");
   // La RPC devuelve la fila completa (single record).
   return data as unknown as UserLocation;
 }
@@ -120,10 +143,16 @@ export async function upsertUserLocation(
  * si hay que mandarlo al onboarding de location o al home.
  */
 export async function hasUserLocation(userId: string): Promise<boolean> {
+  console.log("[locationService::hasUserLocation] Verificando si userId tiene ubicación →", userId);
   const { count, error } = await supabase
     .from("user_locations")
     .select("user_id", { count: "exact", head: true })
     .eq("user_id", userId);
-  if (error) throw error;
-  return (count ?? 0) > 0;
+  if (error) {
+    console.error("[locationService::hasUserLocation] Error de Supabase →", error.message);
+    throw error;
+  }
+  const has = (count ?? 0) > 0;
+  console.log("[locationService::hasUserLocation] Resultado:", has ? "SÍ tiene ubicación" : "NO tiene ubicación", `(count: ${count})`);
+  return has;
 }
