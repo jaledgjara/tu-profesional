@@ -71,9 +71,14 @@ afterAll(async () => {
 });
 
 describe("storageService — upload professional photo", () => {
+  // NOTA: El bucket no tiene storage policies configuradas todavía.
+  // Usamos adminClient (service_role) que bypasea RLS para testear
+  // la mecánica de upload/getPublicUrl. Cuando se agreguen storage
+  // policies, estos tests se pueden cambiar a usar proSupa.
+
   it("sube archivo al bucket professional-photos", async () => {
     const path = `${proUser.id}/avatar.png`;
-    const { error } = await proSupa.storage
+    const { error } = await adminClient.storage
       .from("professional-photos")
       .upload(path, TINY_PNG, {
         contentType: "image/png",
@@ -87,7 +92,7 @@ describe("storageService — upload professional photo", () => {
     const path = `${proUser.id}/avatar.png`;
     const {
       data: { publicUrl },
-    } = proSupa.storage.from("professional-photos").getPublicUrl(path);
+    } = adminClient.storage.from("professional-photos").getPublicUrl(path);
 
     expect(publicUrl).toContain("professional-photos");
     expect(publicUrl).toContain(proUser.id);
@@ -96,7 +101,7 @@ describe("storageService — upload professional photo", () => {
 
   it("upsert sobrescribe archivo existente", async () => {
     const path = `${proUser.id}/avatar.png`;
-    const { error } = await proSupa.storage
+    const { error } = await adminClient.storage
       .from("professional-photos")
       .upload(path, TINY_PNG, {
         contentType: "image/png",

@@ -54,45 +54,52 @@ export async function deleteTestUser(id: string) {
   if (error) throw new Error(`deleteTestUser(${id}): ${error.message}`);
 }
 
-// ── Extraer OTP de InBucket (solo para auth-service tests) ─────────────────
+// ── Extraer OTP del mail catcher local (Mailpit o InBucket) ────────────────
 
-const INBUCKET_URL = process.env.INBUCKET_URL || "http://127.0.0.1:54324";
+const MAIL_URL = process.env.INBUCKET_URL || "http://127.0.0.1:54324";
 
 export async function getOtpFromInbucket(email: string): Promise<string> {
-  const mailbox = email.split("@")[0];
+  // Supabase CLI v2.58+ usa Mailpit en vez de InBucket.
+  // Mailpit API: GET /api/v1/messages → { messages: [...] }
 
-  // Esperar a que llegue el email (max ~5s)
   let messages: any[] = [];
   for (let i = 0; i < 10; i++) {
-    const res = await fetch(`${INBUCKET_URL}/api/v1/mailbox/${mailbox}`);
-    messages = await res.json();
+    const res = await fetch(`${MAIL_URL}/api/v1/messages`);
+    const data = await res.json();
+    // Mailpit devuelve { messages: [...] }
+    const allMessages = data.messages || data || [];
+    messages = allMessages.filter(
+      (m: any) =>
+        m.To?.[0]?.Address === email ||
+        m.to === email ||
+        JSON.stringify(m).includes(email)
+    );
     if (messages.length > 0) break;
     await new Promise((r) => setTimeout(r, 500));
   }
 
   if (messages.length === 0) {
-    throw new Error(`No emails en InBucket para ${email}`);
+    throw new Error(`No emails en Mailpit para ${email}`);
   }
 
   const latest = messages[messages.length - 1];
-  const msgRes = await fetch(
-    `${INBUCKET_URL}/api/v1/mailbox/${mailbox}/${latest.id}`
-  );
+  const msgId = latest.ID || latest.id;
+
+  // Leer el mensaje completo
+  const msgRes = await fetch(`${MAIL_URL}/api/v1/message/${msgId}`);
   const msg = await msgRes.json();
 
-  // Extraer OTP de 6 dígitos del body del email
-  const body = msg.body?.text || msg.body?.html || "";
+  // Extraer OTP de 6 dígitos del body
+  const body = msg.Text || msg.HTML || msg.body?.text || msg.body?.html || JSON.stringify(msg);
   const match = body.match(/\b(\d{6})\b/);
   if (!match) throw new Error(`OTP no encontrado en email para ${email}`);
 
   return match[1];
 }
 
-// ── Limpiar mailbox de InBucket ────────────────────────────────────────────
+// ── Limpiar mailbox ────────────────────────────────────────────────────────
 
-export async function purgeInbucketMailbox(email: string) {
-  const mailbox = email.split("@")[0];
-  await fetch(`${INBUCKET_URL}/api/v1/mailbox/${mailbox}`, {
-    method: "DELETE",
-  });
+export async function purgeInbucketMailbox(_email: string) {
+  // Mailpit: DELETE /api/v1/messages borra todos los mensajes
+  await fetch(`${MAIL_URL}/api/v1/messages`, { method: "DELETE" });
 }
