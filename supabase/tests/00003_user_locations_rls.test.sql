@@ -64,7 +64,7 @@ SELECT tests.authenticate_as(:'bob_id'::uuid);
 SELECT lives_ok(
   format(
     'INSERT INTO public.user_locations (user_id, street, number, geom) VALUES (%L, %L, %L, ST_SetSRID(ST_MakePoint(-68.84, -32.92), 4326)::geography)',
-    :'bob_id'
+    :'bob_id', 'Calle Test', '100'
   ),
   'INSERT: user con profile crea su ubicación'
 );
@@ -74,18 +74,18 @@ SELECT tests.authenticate_as(:'no_profile_id'::uuid);
 SELECT throws_ok(
   format(
     'INSERT INTO public.user_locations (user_id, street, number, geom) VALUES (%L, %L, %L, ST_SetSRID(ST_MakePoint(-68.84, -32.92), 4326)::geography)',
-    :'no_profile_id'
+    :'no_profile_id', 'Calle Test', '200'
   ),
   NULL, NULL,
   'INSERT: user sin profile NO puede crear ubicación'
 );
 
--- Test 6: Alice NO puede insertar ubicación para Bob
+-- Test 6: Alice NO puede insertar ubicación para otro
 SELECT tests.authenticate_as(:'alice_id'::uuid);
 SELECT throws_ok(
   format(
     'INSERT INTO public.user_locations (user_id, street, number, geom) VALUES (%L, %L, %L, ST_SetSRID(ST_MakePoint(-68.84, -32.92), 4326)::geography)',
-    :'admin_id'
+    :'admin_id', 'Calle Hack', '300'
   ),
   NULL, NULL,
   'INSERT: user NO puede crear ubicación para otro'
@@ -96,7 +96,7 @@ SELECT tests.authenticate_as(:'admin_id'::uuid);
 SELECT lives_ok(
   format(
     'INSERT INTO public.user_locations (user_id, street, number, geom) VALUES (%L, %L, %L, ST_SetSRID(ST_MakePoint(-68.82, -32.89), 4326)::geography)',
-    :'admin_id'
+    :'admin_id', 'Calle Admin', '400'
   ),
   'INSERT: admin crea ubicación para cualquier user'
 );
@@ -115,12 +115,12 @@ SELECT lives_ok(
 
 -- Test 9: Bob NO puede actualizar la ubicación de Alice
 SELECT tests.authenticate_as(:'bob_id'::uuid);
-SELECT is(
-  (SELECT count(*)::int FROM (
-    UPDATE public.user_locations SET street = 'Hack' WHERE user_id = :'alice_id'::uuid RETURNING 1
-  ) t),
-  0,
-  'UPDATE: user NO puede actualizar ubicación de otro'
+SELECT lives_ok(
+  format(
+    'UPDATE public.user_locations SET street = %L WHERE user_id = %L',
+    'Hack', :'alice_id'
+  ),
+  'UPDATE: user NO puede actualizar ubicación de otro (0 rows)'
 );
 
 -- ── DELETE tests ───────────────────────────────────────────────────────────
@@ -137,12 +137,12 @@ SELECT lives_ok(
 
 -- Test 11: Bob NO puede borrar la ubicación del admin
 SELECT tests.authenticate_as(:'bob_id'::uuid);
-SELECT is(
-  (SELECT count(*)::int FROM (
-    DELETE FROM public.user_locations WHERE user_id = :'admin_id'::uuid RETURNING 1
-  ) t),
-  0,
-  'DELETE: user NO puede borrar ubicación de otro'
+SELECT lives_ok(
+  format(
+    'DELETE FROM public.user_locations WHERE user_id = %L',
+    :'admin_id'
+  ),
+  'DELETE: user NO puede borrar ubicación de otro (0 rows)'
 );
 
 SELECT * FROM finish();

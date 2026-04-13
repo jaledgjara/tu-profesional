@@ -62,8 +62,12 @@ SELECT is(
 );
 
 -- Test 4: updated_at cambia en el upsert
+-- Guardar el updated_at antes del segundo upsert
+SELECT tests.reset_auth();
+SELECT updated_at AS old_ts
+  FROM public.user_locations WHERE user_id = :'alice_id'::uuid \gset
+
 SELECT tests.authenticate_as(:'alice_id'::uuid);
--- Forzar un pequeño delay para que updated_at difiera
 SELECT pg_sleep(0.1);
 SELECT public.upsert_user_location(
   p_lat := -32.9100,
@@ -73,7 +77,7 @@ SELECT public.upsert_user_location(
 );
 SELECT tests.reset_auth();
 SELECT ok(
-  (SELECT updated_at > created_at FROM public.user_locations WHERE user_id = :'alice_id'::uuid) IS NOT FALSE,
+  (SELECT updated_at > :'old_ts'::timestamptz FROM public.user_locations WHERE user_id = :'alice_id'::uuid),
   'RPC: updated_at se actualiza en upsert'
 );
 

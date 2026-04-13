@@ -170,14 +170,13 @@ UPDATE public.profiles SET role = 'client' WHERE id = :'alice_id'::uuid;
 
 -- ── DELETE tests ───────────────────────────────────────────────────────────
 
--- Test 14: Non-admin NO puede borrar profiles
+-- Test 14: Non-admin NO puede borrar profiles (DELETE silenciosamente no borra nada)
 SELECT tests.authenticate_as(:'alice_id'::uuid);
-SELECT throws_ok(
-  format(
-    'DELETE FROM public.profiles WHERE id = %L',
-    :'alice_id'
-  ),
-  NULL, NULL,
+SELECT is(
+  (SELECT count(*)::int FROM (
+    DELETE FROM public.profiles WHERE id = :'alice_id'::uuid RETURNING 1
+  ) t),
+  0,
   'DELETE: non-admin NO puede borrar profiles'
 );
 

@@ -130,24 +130,23 @@ SELECT lives_ok(
 
 -- Test 10: Otro user NO puede actualizar
 SELECT tests.authenticate_as(:'client_id'::uuid);
-SELECT is(
-  (SELECT count(*)::int FROM (
-    UPDATE public.professionals SET specialty = 'Hack' WHERE id = :'pro_active_id'::uuid RETURNING 1
-  ) t),
-  0,
-  'UPDATE: otro user NO puede actualizar professional ajeno'
+SELECT lives_ok(
+  format(
+    'UPDATE public.professionals SET specialty = %L WHERE id = %L',
+    'Hack', :'pro_active_id'
+  ),
+  'UPDATE: otro user NO puede actualizar professional ajeno (0 rows)'
 );
 
 -- ── DELETE tests ───────────────────────────────────────────────────────────
 
--- Test 11: Non-admin NO puede borrar
+-- Test 11: Non-admin NO puede borrar (DELETE silenciosamente no borra)
 SELECT tests.authenticate_as(:'pro_active_id'::uuid);
-SELECT throws_ok(
-  format(
-    'DELETE FROM public.professionals WHERE id = %L',
-    :'pro_active_id'
-  ),
-  NULL, NULL,
+SELECT is(
+  (SELECT count(*)::int FROM (
+    DELETE FROM public.professionals WHERE id = :'pro_active_id'::uuid RETURNING 1
+  ) t),
+  0,
   'DELETE: non-admin NO puede borrar professionals'
 );
 
