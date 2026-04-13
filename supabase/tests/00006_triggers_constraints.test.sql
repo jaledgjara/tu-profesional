@@ -51,9 +51,15 @@ SELECT ok(
 -- ── Constraint tests ───────────────────────────────────────────────────────
 
 -- Test 4: CHECK role constraint rechaza valor inválido
+-- Usar un user existente en auth.users para que no falle por FK antes del CHECK
+SELECT tests.create_user_only('hacker@test.local')
+  AS hacker_id \gset
+
 SELECT throws_ok(
-  $$INSERT INTO public.profiles (id, role)
-    VALUES (gen_random_uuid(), 'hacker')$$,
+  format(
+    'INSERT INTO public.profiles (id, role) VALUES (%L, %L)',
+    :'hacker_id', 'hacker'
+  ),
   '23514',  -- check_violation
   NULL,
   'CONSTRAINT: role=hacker es rechazado por CHECK'
