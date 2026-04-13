@@ -1,16 +1,19 @@
 -- =============================================================================
 -- 00000_helpers.sql — Funciones compartidas para tests pgTAP
 -- =============================================================================
+-- IMPORTANTE: pg_prove corre en un contexto donde:
+--   - SECURITY DEFINER no puede hacer set_config('role', ...)
+--   - El search_path debe incluir 'extensions' para pgcrypto (crypt/gen_salt)
+--   - auth.users no es accesible desde role=authenticated
+-- =============================================================================
 
 CREATE EXTENSION IF NOT EXISTS pgtap;
 
 CREATE SCHEMA IF NOT EXISTS tests;
 GRANT USAGE ON SCHEMA tests TO authenticated, anon, service_role;
 
--- -----------------------------------------------------------------------------
--- tests.create_supabase_user(email, role)
--- SECURITY DEFINER: necesita insertar en auth.users
--- -----------------------------------------------------------------------------
+-- ─── Funciones que acceden a auth.users (SECURITY DEFINER) ─────────────────
+
 CREATE OR REPLACE FUNCTION tests.create_supabase_user(
   p_email text,
   p_role  text DEFAULT 'client'
@@ -18,7 +21,7 @@ CREATE OR REPLACE FUNCTION tests.create_supabase_user(
 RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, auth
+SET search_path = public, auth, extensions
 AS $$
 DECLARE
   v_uid uuid := gen_random_uuid();
@@ -48,15 +51,13 @@ $$;
 
 GRANT EXECUTE ON FUNCTION tests.create_supabase_user(text, text) TO authenticated, anon;
 
--- -----------------------------------------------------------------------------
--- tests.create_user_only(email)
--- SECURITY DEFINER: necesita insertar en auth.users
--- -----------------------------------------------------------------------------
+-- ───
+
 CREATE OR REPLACE FUNCTION tests.create_user_only(p_email text)
 RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, auth
+SET search_path = public, auth, extensions
 AS $$
 DECLARE
   v_uid uuid := gen_random_uuid();
@@ -83,11 +84,8 @@ $$;
 
 GRANT EXECUTE ON FUNCTION tests.create_user_only(text) TO authenticated, anon;
 
--- -----------------------------------------------------------------------------
--- tests.get_supabase_email(uid)
--- SECURITY DEFINER: lee auth.users para obtener email
--- Usada por authenticate_as (que NO puede ser SECURITY DEFINER)
--- -----------------------------------------------------------------------------
+-- ───
+
 CREATE OR REPLACE FUNCTION tests.get_supabase_email(p_uid uuid)
 RETURNS text
 LANGUAGE sql
@@ -99,11 +97,8 @@ $$;
 
 GRANT EXECUTE ON FUNCTION tests.get_supabase_email(uuid) TO authenticated, anon;
 
--- -----------------------------------------------------------------------------
--- tests.authenticate_as(user_id)
--- NO es SECURITY DEFINER — necesita cambiar role de la sesión
--- Usa get_supabase_email (SECURITY DEFINER) para leer auth.users
--- -----------------------------------------------------------------------------
+-- ─── Funciones que cambian el role de sesión (NO SECURITY DEFINER) ─────────
+
 CREATE OR REPLACE FUNCTION tests.authenticate_as(p_uid uuid)
 RETURNS void
 LANGUAGE plpgsql
@@ -123,17 +118,14 @@ BEGIN
     )::text,
     true
   );
-
   PERFORM set_config('role', 'authenticated', true);
 END;
 $$;
 
 GRANT EXECUTE ON FUNCTION tests.authenticate_as(uuid) TO authenticated, anon;
 
--- -----------------------------------------------------------------------------
--- tests.authenticate_as_anon()
--- NO es SECURITY DEFINER
--- -----------------------------------------------------------------------------
+-- ───
+
 CREATE OR REPLACE FUNCTION tests.authenticate_as_anon()
 RETURNS void
 LANGUAGE plpgsql
@@ -146,10 +138,8 @@ $$;
 
 GRANT EXECUTE ON FUNCTION tests.authenticate_as_anon() TO authenticated, anon;
 
--- -----------------------------------------------------------------------------
--- tests.reset_auth()
--- NO es SECURITY DEFINER
--- -----------------------------------------------------------------------------
+-- ───
+
 CREATE OR REPLACE FUNCTION tests.reset_auth()
 RETURNS void
 LANGUAGE plpgsql
