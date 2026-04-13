@@ -9,6 +9,11 @@
 
 CREATE EXTENSION IF NOT EXISTS pgtap;
 
+-- pgTAP requiere un plan en cada archivo, incluso en helpers
+SELECT plan(1);
+SELECT pass('helpers loaded');
+SELECT * FROM finish();
+
 CREATE SCHEMA IF NOT EXISTS tests;
 GRANT USAGE ON SCHEMA tests TO authenticated, anon, service_role;
 
