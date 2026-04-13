@@ -4,17 +4,12 @@
 
 CREATE EXTENSION IF NOT EXISTS pgtap;
 
--- Schema dedicado para helpers de test
 CREATE SCHEMA IF NOT EXISTS tests;
-
--- Permitir acceso al schema desde roles autenticados/anon
 GRANT USAGE ON SCHEMA tests TO authenticated, anon, service_role;
 
 -- -----------------------------------------------------------------------------
 -- tests.create_supabase_user(email, role)
--- Inserta en auth.users + profiles. Devuelve UUID.
--- SECURITY DEFINER: corre como postgres para poder insertar en auth.users
--- y en profiles sin pasar por RLS.
+-- SECURITY DEFINER: necesita insertar en auth.users
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION tests.create_supabase_user(
   p_email text,
@@ -55,8 +50,7 @@ GRANT EXECUTE ON FUNCTION tests.create_supabase_user(text, text) TO authenticate
 
 -- -----------------------------------------------------------------------------
 -- tests.create_user_only(email)
--- Solo inserta en auth.users, SIN profile.
--- Para testear "authenticated pero sin profile".
+-- SECURITY DEFINER: necesita insertar en auth.users
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION tests.create_user_only(p_email text)
 RETURNS uuid
@@ -90,26 +84,40 @@ $$;
 GRANT EXECUTE ON FUNCTION tests.create_user_only(text) TO authenticated, anon;
 
 -- -----------------------------------------------------------------------------
+-- tests.get_supabase_email(uid)
+-- SECURITY DEFINER: lee auth.users para obtener email
+-- Usada por authenticate_as (que NO puede ser SECURITY DEFINER)
+-- -----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION tests.get_supabase_email(p_uid uuid)
+RETURNS text
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = auth
+AS $$
+  SELECT email FROM auth.users WHERE id = p_uid;
+$$;
+
+GRANT EXECUTE ON FUNCTION tests.get_supabase_email(uuid) TO authenticated, anon;
+
+-- -----------------------------------------------------------------------------
 -- tests.authenticate_as(user_id)
--- Simula autenticación: setea JWT claims + role = authenticated.
--- SECURITY DEFINER para poder leer auth.users y hacer set_config.
+-- NO es SECURITY DEFINER — necesita cambiar role de la sesión
+-- Usa get_supabase_email (SECURITY DEFINER) para leer auth.users
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION tests.authenticate_as(p_uid uuid)
 RETURNS void
 LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, auth
 AS $$
 DECLARE
   v_email text;
 BEGIN
-  SELECT email INTO v_email FROM auth.users WHERE id = p_uid;
+  v_email := tests.get_supabase_email(p_uid);
 
   PERFORM set_config(
     'request.jwt.claims',
     json_build_object(
       'sub', p_uid::text,
-      'email', v_email,
+      'email', COALESCE(v_email, ''),
       'role', 'authenticated',
       'aud', 'authenticated'
     )::text,
@@ -124,12 +132,11 @@ GRANT EXECUTE ON FUNCTION tests.authenticate_as(uuid) TO authenticated, anon;
 
 -- -----------------------------------------------------------------------------
 -- tests.authenticate_as_anon()
--- Simula usuario anónimo (no logueado).
+-- NO es SECURITY DEFINER
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION tests.authenticate_as_anon()
 RETURNS void
 LANGUAGE plpgsql
-SECURITY DEFINER
 AS $$
 BEGIN
   PERFORM set_config('request.jwt.claims', '{}', true);
@@ -141,12 +148,11 @@ GRANT EXECUTE ON FUNCTION tests.authenticate_as_anon() TO authenticated, anon;
 
 -- -----------------------------------------------------------------------------
 -- tests.reset_auth()
--- Vuelve al role postgres (superuser). Usar entre grupos de tests.
+-- NO es SECURITY DEFINER
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION tests.reset_auth()
 RETURNS void
 LANGUAGE plpgsql
-SECURITY DEFINER
 AS $$
 BEGIN
   PERFORM set_config('request.jwt.claims', '', true);
