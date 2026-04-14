@@ -35,9 +35,18 @@ export async function uploadProfessionalPhoto(
   const arrayBuffer = await response.arrayBuffer();
   console.log("[storageService::uploadProfessionalPhoto] ArrayBuffer listo — tamaño:", arrayBuffer.byteLength, "bytes");
 
-  // Inferimos extensión del URI (jpg por default).
-  const extMatch = localUri.match(/\.(\w+)(?:\?|$)/);
-  const ext = (extMatch?.[1] ?? "jpg").toLowerCase();
+  // Inferimos la extensión:
+  //   1. Data URL → la sacamos del MIME type (data:image/png;base64,... → png)
+  //   2. file:// o http(s):// → de la extensión en el path
+  //   3. Fallback → jpg
+  let ext: string;
+  const dataUrlMatch = localUri.match(/^data:image\/(\w+)[;,]/i);
+  if (dataUrlMatch) {
+    ext = dataUrlMatch[1].toLowerCase();
+  } else {
+    const extMatch = localUri.match(/\.(\w+)(?:\?|$)/);
+    ext = (extMatch?.[1] ?? "jpg").toLowerCase();
+  }
   const path = `${userId}/avatar.${ext}`;
   console.log("[storageService::uploadProfessionalPhoto] Path destino en Storage:", `${BUCKET}/${path}`, "| contentType:", `image/${ext === "jpg" ? "jpeg" : ext}`);
 
