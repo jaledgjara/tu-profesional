@@ -13,7 +13,6 @@ export default function ClientProfessionalProfile() {
 
   const {
     professional,
-    yearsExperience,
     description,
     quote,
     quoteAuthor,
@@ -26,7 +25,6 @@ export default function ClientProfessionalProfile() {
   return (
     <ProfessionalBriefcaseScreen
       professional={professional}
-      yearsExperience={yearsExperience}
       description={description}
       quote={quote}
       quoteAuthor={quoteAuthor}

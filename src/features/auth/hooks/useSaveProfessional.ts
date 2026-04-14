@@ -47,14 +47,23 @@ export function useSaveProfessional() {
       console.log("[useSaveProfessional] Iniciando guardado del formulario profesional — userId:", session.user.id, "| nombre:", data.fullName, "| especialidad:", data.specialty);
       setSaving(true);
       try {
-        // 1. Subimos la foto primero. Si falla, no tocamos la BD.
+        // 1. Resolución de la foto:
+        //    - null/vacío          → el user no cargó foto (o la sacó) → photo_url = null
+        //    - URL http(s)         → ya está en Storage (modo edit, foto no cambió)
+        //                            → reusamos la URL, no subimos de nuevo.
+        //    - URI local (file://) → es nueva → la subimos a Storage.
         let photoUrl: string | null = null;
         if (data.photoUri) {
-          console.log("[useSaveProfessional] [1/2] Subiendo foto a Storage…");
-          photoUrl = await uploadProfessionalPhoto(session.user.id, data.photoUri);
-          console.log("[useSaveProfessional] [1/2] Foto subida →", photoUrl);
+          if (/^https?:\/\//i.test(data.photoUri)) {
+            console.log("[useSaveProfessional] [1/2] Foto ya remota — no re-subo, reuso URL existente.");
+            photoUrl = data.photoUri;
+          } else {
+            console.log("[useSaveProfessional] [1/2] Subiendo foto local a Storage…");
+            photoUrl = await uploadProfessionalPhoto(session.user.id, data.photoUri);
+            console.log("[useSaveProfessional] [1/2] Foto subida →", photoUrl);
+          }
         } else {
-          console.log("[useSaveProfessional] [1/2] Sin foto seleccionada — se omite el upload.");
+          console.log("[useSaveProfessional] [1/2] Sin foto — photo_url quedará en null.");
         }
 
         // 2. Upsert de la fila professionals con todos los datos (incluyendo full_name y phone).

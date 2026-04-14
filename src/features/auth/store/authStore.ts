@@ -37,46 +37,80 @@ interface AuthState {
   signOut: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+// ─────────────────────────────────────────────────────────────────────────────
+// SINGLEFLIGHT — evita que refresh() corra dos veces en paralelo.
+// Si dos eventos de auth llegan al mismo tiempo (p.ej. INITIAL_SESSION + SIGNED_IN),
+// la segunda invocación se suma a la promesa en curso en vez de disparar otra.
+// Vive a nivel de módulo porque no debe perderse entre renders.
+// ─────────────────────────────────────────────────────────────────────────────
+
+let inFlightRefresh: Promise<void> | null = null;
+
+export const useAuthStore = create<AuthState>((set, get) => ({
   session: null,
   profile: null,
   status:  "loading",
 
   refresh: async () => {
-    console.log("[authStore::refresh] Iniciando evaluación del estado de auth…");
-    try {
-      const session = await authService.getSession();
-
-      if (!session) {
-        console.log("[authStore::refresh] Sin sesión → status: unauthenticated");
-        set({ session: null, profile: null, status: "unauthenticated" });
-        return;
-      }
-      console.log("[authStore::refresh] Sesión activa — userId:", session.user.id, "| email:", session.user.email);
-
-      const profile = await profileService.getProfile(session.user.id);
-
-      if (!profile) {
-        console.log("[authStore::refresh] Sin profile → status: needs-role (el user debe elegir su rol)");
-        set({ session, profile: null, status: "needs-role" });
-        return;
-      }
-      console.log("[authStore::refresh] Profile encontrado — rol:", profile.role);
-
-      const hasLocation = await hasUserLocation(session.user.id);
-      if (!hasLocation) {
-        console.log("[authStore::refresh] Sin ubicación → status: needs-location (el user debe completar su dirección)");
-        set({ session, profile, status: "needs-location" });
-        return;
-      }
-
-      console.log("[authStore::refresh] Todo completo → status: authenticated ✓ — el guard enviará al home de rol:", profile.role);
-      set({ session, profile, status: "authenticated" });
-    } catch (err) {
-      console.error("[authStore::refresh] Error inesperado durante el refresh — se fuerza unauthenticated:", err);
-      // En caso de error de red, no rompemos la app: dejamos loading false.
-      set({ status: "unauthenticated" });
+    if (inFlightRefresh) {
+      console.log("[authStore::refresh] Ya hay un refresh en curso — me sumo a esa promesa.");
+      return inFlightRefresh;
     }
+
+    inFlightRefresh = (async () => {
+      console.log("[authStore::refresh] Iniciando evaluación del estado de auth…");
+      try {
+        const session = await authService.getSession();
+
+        if (!session) {
+          console.log("[authStore::refresh] Sin sesión → status: unauthenticated");
+          set({ session: null, profile: null, status: "unauthenticated" });
+          return;
+        }
+        console.log("[authStore::refresh] Sesión activa — userId:", session.user.id, "| email:", session.user.email);
+
+        const profile = await profileService.getProfile(session.user.id);
+
+        if (!profile) {
+          console.log("[authStore::refresh] Sin profile → status: needs-role (el user debe elegir su rol)");
+          set({ session, profile: null, status: "needs-role" });
+          return;
+        }
+        console.log("[authStore::refresh] Profile encontrado — rol:", profile.role);
+
+        const hasLocation = await hasUserLocation(session.user.id);
+        if (!hasLocation) {
+          console.log("[authStore::refresh] Sin ubicación → status: needs-location (el user debe completar su dirección)");
+          set({ session, profile, status: "needs-location" });
+          return;
+        }
+
+        console.log("[authStore::refresh] Todo completo → status: authenticated ✓ — el guard enviará al home de rol:", profile.role);
+        set({ session, profile, status: "authenticated" });
+      } catch (err) {
+        // Error transitorio (red, Supabase re-inicializándose tras HMR, timeout, etc.).
+        // NO forzamos `unauthenticated`: perderíamos la sesión real persistida en
+        // AsyncStorage y mandaríamos al user al Welcome sin motivo. Preservamos el
+        // status vigente; el próximo evento de auth o un refresh posterior resuelven.
+        const currentStatus = get().status;
+        console.warn(
+          "[authStore::refresh] Error transitorio — preservo status actual:",
+          currentStatus,
+          "| error:",
+          err,
+        );
+        // Si todavía estábamos en el arranque (loading) y nunca logramos evaluar,
+        // caemos a unauthenticated: no podemos demostrar sesión, pero no hubo una
+        // autenticación previa que valga la pena proteger.
+        if (currentStatus === "loading") {
+          set({ status: "unauthenticated" });
+        }
+      } finally {
+        inFlightRefresh = null;
+      }
+    })();
+
+    return inFlightRefresh;
   },
 
   signOut: async () => {

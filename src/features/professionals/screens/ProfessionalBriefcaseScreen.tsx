@@ -3,18 +3,20 @@
 // Clientes: usuario final (showBackButton=true) y profesional (showEditButton=true)
 // Reutilizable en: /(client)/home/[id], /(client)/search/[id], /(professional)/briefcase
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   ScrollView,
+  FlatList,
   Pressable,
   StyleSheet,
   Alert,
   Linking,
 } from "react-native";
-import type { ComponentProps } from "react";
-import { Ionicons } from "@expo/vector-icons";
+import type { ComponentProps, ReactNode } from "react";
+import { Ionicons, FontAwesome6 } from "@expo/vector-icons";
+import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 
 import {
   AppHeader,
@@ -52,19 +54,50 @@ export interface ReviewData {
   dateString: string;
 }
 
+export type SocialLinkType =
+  | "whatsapp"
+  | "instagram"
+  | "linkedin"
+  | "twitter"
+  | "tiktok";
+
 export interface SocialLinkData {
-  type: "whatsapp" | "instagram" | "facebook" | "linkedin";
+  type: SocialLinkType;
   url: string;
+}
+
+/** Dirección que se muestra en la sección Ubicación. Viene de user_locations. */
+export interface BriefcaseAddress {
+  street?:   string | null;
+  number?:   string | null;
+  city?:     string | null;
+  province?: string | null;
+  /** Coordenadas para centrar el mapa. Si faltan, se cae al placeholder. */
+  lat?:      number | null;
+  lng?:      number | null;
 }
 
 export interface ProfessionalBriefcaseScreenProps {
   professional: Professional;
-  yearsExperience?: number;
   description?: string;
   quote?: string;
   quoteAuthor?: string;
   reviews?: ReviewData[];
   socialLinks?: SocialLinkData[];
+  /** Estado real del profesional (viene de DB). Si se omite, queda en `false`. */
+  attendsOnline?: boolean;
+  attendsPresencial?: boolean;
+  /**
+   * Si es `true`, los toggles de modalidad son informativos (no editables).
+   * La edición va por el formulario de profesional, no por el briefcase.
+   */
+  modalityReadOnly?: boolean;
+  /** Dirección real del profesional. Si se omite, se usa `professional.zone`. */
+  address?: BriefcaseAddress | null;
+  /** Oculta la StatsRow (rating/reseñas) cuando no hay datos. */
+  hideStats?: boolean;
+  /** Oculta la pill de distancia (útil en la vista propia del profesional). */
+  hideDistance?: boolean;
   showBackButton?: boolean;
   showEditButton?: boolean;
   onBack?: () => void;
@@ -76,33 +109,71 @@ export interface ProfessionalBriefcaseScreenProps {
 // CONFIG DE REDES SOCIALES
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SOCIAL_CONFIG: Record<
-  SocialLinkData["type"],
-  { iconName: IoniconName; label: string; iconColor: string; bgColor: string }
-> = {
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** "Calle 123, Ciudad, Provincia" — filtra vacíos y arma la línea de dirección. */
+function buildAddressLine(address?: BriefcaseAddress | null): string {
+  if (!address) return "";
+  const street =
+    address.street && address.number
+      ? `${address.street} ${address.number}`
+      : address.street ?? "";
+  const parts = [street, address.city, address.province]
+    .map((p) => p?.trim())
+    .filter((p): p is string => Boolean(p));
+  return parts.join(", ");
+}
+
+// Alineado con las columnas `social_*` del schema (sin facebook — no existe en DB).
+// `renderIcon` en lugar de `iconName` porque mezclamos icon sets: Ionicons para
+// casi todo, FontAwesome6 para el logo de X (Ionicons solo trae el pájaro viejo).
+interface SocialConfigEntry {
+  label:     string;
+  iconColor: string;
+  bgColor:   string;
+  renderIcon: (size: number, color: string) => ReactNode;
+}
+
+const ionIcon = (name: IoniconName) =>
+  (size: number, color: string) => (
+    <Ionicons name={name} size={size} color={color} />
+  );
+
+const SOCIAL_CONFIG: Record<SocialLinkType, SocialConfigEntry> = {
   whatsapp: {
-    iconName: "logo-whatsapp",
-    label: "WhatsApp",
-    iconColor: "#25D366",
-    bgColor: "#E8FAF0",
+    label:      "WhatsApp",
+    iconColor:  "#25D366",
+    bgColor:    "#E8FAF0",
+    renderIcon: ionIcon("logo-whatsapp"),
   },
   instagram: {
-    iconName: "logo-instagram",
-    label: "Instagram",
-    iconColor: "#E4405F",
-    bgColor: "#FDE8ED",
-  },
-  facebook: {
-    iconName: "logo-facebook",
-    label: "Facebook",
-    iconColor: "#1877F2",
-    bgColor: "#E8F1FE",
+    label:      "Instagram",
+    iconColor:  "#E4405F",
+    bgColor:    "#FDE8ED",
+    renderIcon: ionIcon("logo-instagram"),
   },
   linkedin: {
-    iconName: "logo-linkedin",
-    label: "LinkedIn",
-    iconColor: "#0A66C2",
-    bgColor: "#E7F0FA",
+    label:      "LinkedIn",
+    iconColor:  "#0A66C2",
+    bgColor:    "#E7F0FA",
+    renderIcon: ionIcon("logo-linkedin"),
+  },
+  twitter: {
+    label:      "X",
+    iconColor:  "#000000",
+    bgColor:    "#F2F2F2",
+    // Icono oficial de X via FontAwesome6 — Ionicons solo tiene el pájaro clásico.
+    renderIcon: (size, color) => (
+      <FontAwesome6 name="x-twitter" size={size} color={color} />
+    ),
+  },
+  tiktok: {
+    label:      "TikTok",
+    iconColor:  "#000000",
+    bgColor:    "#F2F2F2",
+    renderIcon: ionIcon("logo-tiktok"),
   },
 };
 
@@ -112,12 +183,17 @@ const SOCIAL_CONFIG: Record<
 
 export function ProfessionalBriefcaseScreen({
   professional,
-  yearsExperience,
   description,
   quote,
   quoteAuthor,
   reviews = [],
   socialLinks = [],
+  attendsOnline,
+  attendsPresencial,
+  modalityReadOnly = false,
+  address,
+  hideStats = false,
+  hideDistance = false,
   showBackButton = false,
   showEditButton = false,
   onBack,
@@ -126,23 +202,33 @@ export function ProfessionalBriefcaseScreen({
 }: ProfessionalBriefcaseScreenProps) {
   const distanceKm = (professional.distanceM / 1000).toFixed(1);
 
-  // TODO: estos valores vendrán del perfil del profesional (Supabase)
-  const [worksOnline, setWorksOnline] = useState(true);
-  const [worksInPerson, setWorksInPerson] = useState(true);
+  // Los switches reflejan los flags del profesional (attends_online / attends_presencial).
+  // Por ahora son visuales: la persistencia se hace desde el formulario de edición.
+  const [worksOnline, setWorksOnline] = useState<boolean>(attendsOnline ?? false);
+  const [worksInPerson, setWorksInPerson] = useState<boolean>(attendsPresencial ?? false);
 
-  const stats = [
-    {
-      value: `★ ${professional.rating.toFixed(1)}`,
-      label: strings.publicProfile.rating,
-    },
-    {
-      value: professional.reviewCount,
-      label: strings.publicProfile.reviews_label,
-    },
-    ...(yearsExperience !== undefined
-      ? [{ value: yearsExperience, label: strings.publicProfile.experience }]
-      : []),
-  ];
+  useEffect(() => {
+    setWorksOnline(attendsOnline ?? false);
+  }, [attendsOnline]);
+
+  useEffect(() => {
+    setWorksInPerson(attendsPresencial ?? false);
+  }, [attendsPresencial]);
+
+  const stats = hideStats
+    ? []
+    : [
+        {
+          value: `★ ${professional.rating.toFixed(1)}`,
+          label: strings.publicProfile.rating,
+        },
+        {
+          value: professional.reviewCount,
+          label: strings.publicProfile.reviews_label,
+        },
+      ];
+
+  const addressLine = buildAddressLine(address) || professional.zone;
 
   const handleSocialPress = (link: SocialLinkData) => {
     Alert.alert(
@@ -200,63 +286,110 @@ export function ProfessionalBriefcaseScreen({
         <Avatar
           imageUrl={professional.imageUrl}
           name={professional.name}
-          size="xl"
+          size="xxl"
+          rounded
           showVerifiedBadge
         />
         <Text style={styles.heroName}>{professional.name}</Text>
-        <Text style={styles.heroTitle}>{professional.title}</Text>
-        <Text style={styles.heroSpecialty}>{professional.specialty}</Text>
+        {professional.title ? (
+          <Text style={styles.heroTitle}>{professional.title}</Text>
+        ) : null}
+        {professional.specialty ? (
+          <Text style={styles.heroSpecialty}>{professional.specialty}</Text>
+        ) : null}
       </View>
 
       {/* ── STATS ROW — overlap sobre hero ──────────────────────────────── */}
-      <View style={styles.statsWrapper}>
-        <StatsRow stats={stats} />
-      </View>
+      {stats.length > 0 && (
+        <View style={styles.statsWrapper}>
+          <StatsRow stats={stats} />
+        </View>
+      )}
 
       {/* ── SECCIONES — contenido debajo del hero/stats ─────────────────── */}
-      <View style={styles.sections}>
+      <View
+        style={[
+          styles.sections,
+          stats.length === 0 && styles.sectionsNoStats,
+        ]}
+      >
         {/* UBICACIÓN + MAPA */}
         <InfoSection title="Ubicación">
           <View style={styles.mapArea}>
-            {/* Mapa decorativo (placeholder visual hasta integrar react-native-maps) */}
-            <View style={styles.mapGrid}>
-              {Array.from({ length: 6 }).map((_, i) => (
-                <View
-                  key={`h-${i}`}
-                  style={[styles.mapGridLineH, { top: `${(i + 1) * 14}%` }]}
+            {address?.lat != null && address?.lng != null ? (
+              <MapView
+                provider={PROVIDER_DEFAULT}
+                style={StyleSheet.absoluteFill}
+                initialRegion={{
+                  latitude:       address.lat,
+                  longitude:      address.lng,
+                  // ~300 metros de zoom — alcanza para ver calles + comercios
+                  // a la redonda sin perder el contexto de la zona.
+                  latitudeDelta:  0.004,
+                  longitudeDelta: 0.004,
+                }}
+                scrollEnabled={false}
+                zoomEnabled={false}
+                rotateEnabled={false}
+                pitchEnabled={false}
+                toolbarEnabled={false}
+                showsPointsOfInterest
+                showsBuildings
+                showsCompass={false}
+              >
+                <Marker
+                  coordinate={{ latitude: address.lat, longitude: address.lng }}
+                  anchor={{ x: 0.5, y: 1 }}
                 />
-              ))}
-              {Array.from({ length: 6 }).map((_, i) => (
-                <View
-                  key={`v-${i}`}
-                  style={[styles.mapGridLineV, { left: `${(i + 1) * 14}%` }]}
-                />
-              ))}
-            </View>
-            <View style={styles.mapPin}>
-              <Ionicons
-                name="location"
-                size={36}
-                color={colors.brand.primary}
-              />
-            </View>
+              </MapView>
+            ) : (
+              // Fallback decorativo cuando todavía no hay coordenadas
+              // (ej. usuario sin ubicación cargada, o la RPC aún no respondió).
+              <>
+                <View style={styles.mapGrid}>
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <View
+                      key={`h-${i}`}
+                      style={[styles.mapGridLineH, { top: `${(i + 1) * 14}%` }]}
+                    />
+                  ))}
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <View
+                      key={`v-${i}`}
+                      style={[styles.mapGridLineV, { left: `${(i + 1) * 14}%` }]}
+                    />
+                  ))}
+                </View>
+                <View style={styles.mapPin}>
+                  <Ionicons
+                    name="location"
+                    size={36}
+                    color={colors.brand.primary}
+                  />
+                </View>
+              </>
+            )}
           </View>
 
-          <View style={styles.mapMetaRow}>
-            <View style={styles.mapMetaLeft}>
-              <Ionicons
-                name="navigate-outline"
-                size={16}
-                color={colors.text.secondary}
-              />
-              <Text style={styles.mapZone} numberOfLines={1}>
-                {professional.zone}
-              </Text>
+          {addressLine ? (
+            <View style={styles.mapMetaRow}>
+              <View style={styles.mapMetaLeft}>
+                <Ionicons
+                  name="navigate-outline"
+                  size={16}
+                  color={colors.text.secondary}
+                />
+                <Text style={styles.mapZone} numberOfLines={2}>
+                  {addressLine}
+                </Text>
+              </View>
+              {!hideDistance && (
+                <View style={styles.mapDistancePill}>
+                  <Text style={styles.mapDistanceText}>{distanceKm} km</Text>
+                </View>
+              )}
             </View>
-            <View style={styles.mapDistancePill}>
-              <Text style={styles.mapDistanceText}>{distanceKm} km</Text>
-            </View>
-          </View>
+          ) : null}
         </InfoSection>
 
         {/* SOBRE MÍ */}
@@ -304,6 +437,7 @@ export function ProfessionalBriefcaseScreen({
             <Switch
               value={worksOnline}
               onValueChange={setWorksOnline}
+              readOnly={modalityReadOnly}
               accessibilityLabel="Trabajo online"
             />
           </View>
@@ -324,6 +458,7 @@ export function ProfessionalBriefcaseScreen({
             <Switch
               value={worksInPerson}
               onValueChange={setWorksInPerson}
+              readOnly={modalityReadOnly}
               accessibilityLabel="Trabajo presencial"
             />
           </View>
@@ -366,18 +501,23 @@ export function ProfessionalBriefcaseScreen({
           </View>
         )}
 
-        {/* REDES SOCIALES */}
+        {/* REDES SOCIALES — solo las que el profesional cargó en su perfil */}
         {socialLinks.length > 0 && (
           <InfoSection title={strings.publicProfile.socialNetworks}>
-            <View style={styles.socialRow}>
-              {socialLinks.map((link) => {
-                const config = SOCIAL_CONFIG[link.type];
+            <FlatList
+              data={socialLinks}
+              keyExtractor={(link) => link.type}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.socialListContent}
+              ItemSeparatorComponent={() => <View style={styles.socialSeparator} />}
+              renderItem={({ item }) => {
+                const config = SOCIAL_CONFIG[item.type];
                 return (
                   <Pressable
-                    key={link.type}
-                    onPress={() => handleSocialPress(link)}
+                    onPress={() => handleSocialPress(item)}
                     style={({ pressed }) => [
-                      styles.socialBtn,
+                      styles.socialCard,
                       {
                         backgroundColor: config.bgColor,
                         opacity: pressed ? 0.7 : 1,
@@ -386,19 +526,16 @@ export function ProfessionalBriefcaseScreen({
                     ]}
                     accessibilityRole="button"
                     accessibilityLabel={config.label}>
-                    <Ionicons
-                      name={config.iconName}
-                      size={28}
-                      color={config.iconColor}
-                    />
+                    {config.renderIcon(24, config.iconColor)}
                     <Text
-                      style={[styles.socialLabel, { color: config.iconColor }]}>
+                      style={[styles.socialLabel, { color: config.iconColor }]}
+                      numberOfLines={1}>
                       {config.label}
                     </Text>
                   </Pressable>
                 );
-              })}
-            </View>
+              }}
+            />
           </InfoSection>
         )}
       </View>
@@ -420,7 +557,7 @@ const styles = StyleSheet.create({
   hero: {
     backgroundColor: colors.palette.blue700,
     paddingHorizontal: spacing[5],
-    paddingTop: spacing[5],
+    paddingTop: spacing[2],
     paddingBottom: spacing[12], // espacio para el overlap de StatsRow
     alignItems: "center",
     gap: spacing[2],
@@ -464,6 +601,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     paddingTop: spacing[5],
     gap: spacing[4],
+  },
+  // Cuando no se renderiza StatsRow, el hero pierde el overlap y hay que
+  // recuperar el respiro vertical hacia las secciones.
+  sectionsNoStats: {
+    paddingTop: spacing[8],
   },
 
   // Sobre mí
@@ -529,7 +671,7 @@ const styles = StyleSheet.create({
 
   // Ubicación / Mapa
   mapArea: {
-    height: 160,
+    height: 220,
     backgroundColor: colors.palette.blue50,
     borderRadius: componentRadius.card,
     borderWidth: 1,
@@ -613,22 +755,23 @@ const styles = StyleSheet.create({
     color: colors.text.brand,
   },
 
-  // Redes sociales
-  socialRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing[3],
+  // Redes sociales — FlatList horizontal con cards compactos
+  socialListContent: {
+    paddingVertical: spacing[1],
   },
-  socialBtn: {
-    flex: 1,
-    minWidth: "40%",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing[2],
-    borderRadius: componentRadius.card,
-    paddingVertical: spacing[3],
-    minHeight: 44,
+  socialSeparator: {
+    width: spacing[3],
+  },
+  socialCard: {
+    flexDirection:     "row",
+    alignItems:        "center",
+    justifyContent:    "center",
+    gap:               spacing[2],
+    borderRadius:      componentRadius.card,
+    paddingHorizontal: spacing[4],
+    paddingVertical:   spacing[3],
+    minHeight:         44,
+    minWidth:          140,
   },
   socialLabel: {
     ...typography.buttonSm,

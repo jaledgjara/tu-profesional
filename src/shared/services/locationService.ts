@@ -138,6 +138,82 @@ export async function upsertUserLocation(
   return data as unknown as UserLocation;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// LECTURA — user_locations del propio usuario
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Datos que renderiza la UI: dirección textual + coordenadas para el mapa.
+ * `lat`/`lng` vienen del RPC `get_my_user_location()` que extrae `ST_X/ST_Y`
+ * del geography — así no parseamos WKT en el cliente.
+ */
+export interface UserLocationAddress {
+  street:     string;
+  number:     string;
+  floor:      string | null;
+  apartment:  string | null;
+  postalCode: string | null;
+  city:       string | null;
+  province:   string | null;
+  country:    string | null;
+  lat:        number;
+  lng:        number;
+}
+
+// Shape crudo que devuelve la RPC. Se tipa a mano porque todavía no regeneramos
+// `database.ts`: cuando se regeneren los tipos se puede derivar de
+// `Database["public"]["Functions"]["get_my_user_location"]["Returns"][number]`.
+interface GetMyUserLocationRow {
+  user_id:     string;
+  street:      string;
+  number:      string;
+  floor:       string | null;
+  apartment:   string | null;
+  postal_code: string | null;
+  city:        string | null;
+  province:    string | null;
+  country:     string | null;
+  lat:         number;
+  lng:         number;
+}
+
+/**
+ * Devuelve la dirección persistida del usuario logueado con lat/lng listos
+ * para pintar en un mapa. Va por RPC (security invoker + RLS) para ahorrar
+ * el parseo manual de geography en el cliente.
+ */
+export async function getMyUserLocation(
+  userId: string,
+): Promise<UserLocationAddress | null> {
+  console.log("[locationService::getMyUserLocation] Llamando RPC get_my_user_location — userId:", userId);
+  const { data, error } = await supabase.rpc(
+    // Cast necesario hasta regenerar tipos con `supabase gen types typescript`.
+    "get_my_user_location" as never,
+  );
+  if (error) {
+    console.error("[locationService::getMyUserLocation] Error en RPC →", error.message);
+    throw error;
+  }
+  const rows = (data ?? []) as GetMyUserLocationRow[];
+  const row  = rows[0];
+  if (!row) {
+    console.log("[locationService::getMyUserLocation] El user todavía no tiene ubicación cargada.");
+    return null;
+  }
+  return {
+    street:     row.street,
+    number:     row.number,
+    floor:      row.floor,
+    apartment:  row.apartment,
+    postalCode: row.postal_code,
+    city:       row.city,
+    province:   row.province,
+    country:    row.country,
+    lat:        row.lat,
+    lng:        row.lng,
+  };
+}
+
 /**
  * ¿El user ya tiene una ubicación cargada? Lo usa el authStore para decidir
  * si hay que mandarlo al onboarding de location o al home.

@@ -31,7 +31,19 @@
       "Bash(supabase status:*)",
       "Bash(supabase --version)",
       "Bash(npx vitest:*)",
-      "Bash(supabase start:*)"
+      "Bash(supabase start:*)",
+      "Bash(ls:*)",
+      "WebSearch",
+      "Bash(xcrun simctl:*)",
+      "Bash(git stash:*)",
+      "Bash(supabase db:*)",
+      "Bash(supabase migration:*)",
+      "Bash(psql postgresql://postgres:postgres@localhost:54322/postgres -c \"SELECT 1\")",
+      "Bash(mkdir -p \"\\(tabs\\)\")",
+      "Bash(mv home:*)",
+      "Bash(mv briefcase:*)",
+      "Bash(mkdir -p \"\\(tabs\\)/profile\")",
+      "Bash(mv profile/index.tsx \"\\(tabs\\)/profile/index.tsx\")"
     ]
   }
 }

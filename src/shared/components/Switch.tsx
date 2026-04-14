@@ -11,6 +11,11 @@ interface SwitchProps {
   value:          boolean;
   onValueChange:  (value: boolean) => void;
   disabled?:      boolean;
+  /**
+   * Bloquea la interacción sin apagar los colores. Usar para estados
+   * informativos (reflejo de DB) donde no corresponde editar.
+   */
+  readOnly?:      boolean;
   style?:         ViewStyle;
   accessibilityLabel?: string;
 }
@@ -24,6 +29,7 @@ export const Switch: React.FC<SwitchProps> = ({
   value,
   onValueChange,
   disabled = false,
+  readOnly = false,
   style,
   accessibilityLabel,
 }) => {
@@ -47,12 +53,14 @@ export const Switch: React.FC<SwitchProps> = ({
     outputRange: [KNOB_PADDING, TRACK_WIDTH - KNOB_SIZE - KNOB_PADDING],
   });
 
+  const isInert = disabled || readOnly;
+
   return (
     <Pressable
-      onPress={() => !disabled && onValueChange(!value)}
-      disabled={disabled}
+      onPress={() => !isInert && onValueChange(!value)}
+      disabled={isInert}
       accessibilityRole="switch"
-      accessibilityState={{ checked: value, disabled }}
+      accessibilityState={{ checked: value, disabled: isInert }}
       accessibilityLabel={accessibilityLabel}
       hitSlop={8}
       style={[{ opacity: disabled ? 0.5 : 1 }, style]}

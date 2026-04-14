@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tu código de acceso — Tu Profesional</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #f7f5f2;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      .wrapper {
+        max-width: 480px;
+        margin: 40px auto;
+        background: #ffffff;
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      .header {
+        background-color: #2e6cc8;
+        padding: 32px 40px;
+        text-align: center;
+      }
+      .header h1 {
+        color: #ffffff;
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: -0.3px;
+      }
+      .body {
+        padding: 40px;
+      }
+      .body p {
+        color: #4a4238;
+        font-size: 15px;
+        line-height: 1.6;
+        margin: 0 0 24px;
+      }
+      .otp-box {
+        background-color: #f7f5f2;
+        border: 2px solid #2e6cc8;
+        border-radius: 12px;
+        padding: 24px 16px;
+        text-align: center;
+        margin: 0 0 24px;
+      }
+      .otp-label {
+        color: #6b6156;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin: 0 0 8px;
+      }
+      .otp-code {
+        color: #27231c;
+        font-size: 42px;
+        font-weight: 700;
+        letter-spacing: 8px;
+        margin: 0;
+        font-variant-numeric: tabular-nums;
+      }
+      .expiry {
+        color: #9e8f82;
+        font-size: 13px;
+        margin: 0 0 24px;
+      }
+      .footer {
+        border-top: 1px solid #ede8e1;
+        padding: 24px 40px;
+        text-align: center;
+      }
+      .footer p {
+        color: #9e8f82;
+        font-size: 12px;
+        line-height: 1.5;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="header">
+        <h1>Tu Profesional</h1>
+      </div>
+      <div class="body">
+        <p>Hola, ingresá este código en la app para continuar:</p>
+
+        <div class="otp-box">
+          <p class="otp-label">Código de acceso</p>
+          <p class="otp-code">{{ .Token }}</p>
+        </div>
+
+        <p class="expiry">
+          Este código expira en 20 minutos. Si no solicitaste acceso a Tu
+          Profesional, podés ignorar este mensaje.
+        </p>
+      </div>
+      <div class="footer">
+        <p>
+          Tu Profesional — Conectando personas con profesionales de salud mental
+          en Argentina.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

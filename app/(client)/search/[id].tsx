@@ -11,7 +11,7 @@ export default function SearchProfessionalProfile() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { professional, yearsExperience, description, quote, quoteAuthor, reviews, socialLinks } =
+  const { professional, description, quote, quoteAuthor, reviews, socialLinks } =
     useProfessionalDetail(id);
 
   if (!professional) return null;
@@ -19,7 +19,6 @@ export default function SearchProfessionalProfile() {
   return (
     <ProfessionalBriefcaseScreen
       professional={professional}
-      yearsExperience={yearsExperience}
       description={description}
       quote={quote}
       quoteAuthor={quoteAuthor}

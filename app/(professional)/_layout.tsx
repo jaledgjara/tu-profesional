@@ -1,85 +1,35 @@
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { AnimatedTabBar } from '@/shared/components';
-import { colors } from '@/shared/theme';
+// Layout raíz del área profesional.
+// Es un Stack que contiene dos "ramas":
+//   · (tabs)              → navegación por tabs (home, briefcase, profile)
+//   · profile/edit-profile → pantalla full-screen sin tab bar (al estilo IG
+//                             cuando abrís un chat: el tab bar desaparece).
+//
+// La (tabs) es un route group — no afecta la URL. La ruta del perfil público
+// sigue siendo `/(professional)/profile`, y la de edición es
+// `/(professional)/profile/edit-profile`.
 
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
-
-function TabIcon({
-  name,
-  nameFocused,
-  focused,
-  color,
-  size,
-}: {
-  name:         IoniconName;
-  nameFocused:  IoniconName;
-  focused:      boolean;
-  color:        string;
-  size:         number;
-}) {
-  return (
-    <Ionicons name={focused ? nameFocused : name} size={size} color={color} />
-  );
-}
+import { Stack } from "expo-router";
 
 export default function ProfessionalLayout() {
   return (
-    <Tabs
-      tabBar={(props) => (
-        <AnimatedTabBar
-          {...props}
-          activeTintColor={colors.brand.primary}
-          activePillColor={colors.brand.primaryLight}
-        />
-      )}
+    <Stack
+      // Al montar el área profesional, entramos por el grupo de tabs.
+      // Cualquier URL tipo `/(professional)/home` resuelve dentro de (tabs).
+      initialRouteName="(tabs)"
       screenOptions={{ headerShown: false }}
     >
-      <Tabs.Screen
-        name="home/index"
+      {/* Grupo de tabs — home, briefcase, profile/index. Tiene su propio _layout. */}
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+
+      {/* Editar perfil — hermano del grupo de tabs, no heredero del tab bar. */}
+      <Stack.Screen
+        name="profile/edit-profile"
         options={{
-          title: 'Inicio',
-          tabBarIcon: ({ focused, color, size }) => (
-            <TabIcon
-              name="home-outline"
-              nameFocused="home"
-              focused={focused}
-              color={color}
-              size={size}
-            />
-          ),
+          animation:      "slide_from_right",
+          gestureEnabled: true,
+          headerShown:    false,
         }}
       />
-      <Tabs.Screen
-        name="briefcase/index"
-        options={{
-          title: 'Mi Portafolio',
-          tabBarIcon: ({ focused, color, size }) => (
-            <TabIcon
-              name="document-text-outline"
-              nameFocused="document-text"
-              focused={focused}
-              color={color}
-              size={size}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile/index"
-        options={{
-          title: 'Perfil',
-          tabBarIcon: ({ focused, color, size }) => (
-            <TabIcon
-              name="person-outline"
-              nameFocused="person"
-              focused={focused}
-              color={color}
-              size={size}
-            />
-          ),
-        }}
-      />
-    </Tabs>
+    </Stack>
   );
 }

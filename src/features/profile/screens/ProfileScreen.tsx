@@ -20,6 +20,8 @@ import {
   layout,
 } from "@/shared/theme";
 import { strings } from "@/shared/utils/strings";
+import { useAuthStore } from "@/features/auth/store/authStore";
+import { useProfessionalProfile } from "@/features/professionals/hooks/useProfessionalProfile";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TIPOS
@@ -46,6 +48,16 @@ export function ProfileScreen({
 
   const isProfessional = variant === "professional";
 
+  // Datos reales del usuario logueado.
+  // El profesional muestra su full_name; el cliente aún no tiene un campo de nombre,
+  // por eso cae al email como fallback (se refinará cuando el client tenga nombre).
+  const sessionEmail = useAuthStore((s) => s.session?.user.email ?? "");
+  const { professional } = useProfessionalProfile();
+
+  const displayName = isProfessional
+    ? (professional?.full_name?.trim() || sessionEmail)
+    : sessionEmail;
+
   return (
     <View style={styles.screen}>
       {/* ── HEADER 56pt + HERO con título h1 ────────────────────────────── */}
@@ -58,34 +70,27 @@ export function ProfileScreen({
       >
         {/* ── AVATAR ──────────────────────────────────────────────────── */}
         <View style={styles.avatarSection}>
-          <Avatar name={strings.userProfile.mockName} size="xl" />
+          <Avatar
+            name={displayName}
+            imageUrl={professional?.photo_url ?? null}
+            size="xl"
+          />
         </View>
 
         {/* ── EMAIL (locked) ──────────────────────────────────────────── */}
         <TextInput
           label={strings.userProfile.email}
-          value={strings.userProfile.mockEmail}
+          value={sessionEmail}
           locked
           editable={false}
           onChangeText={() => {}}
         />
 
-        {/* ── OPCIONES ────────────────────────────────────────────────── */}
+        {/* ── OPCIONES ─────────────────────────────────────────────────
+           Los 3 items comparten el mismo card con divider. "Editar mi perfil"
+           va al final porque es la acción que cambia de pantalla full-screen;
+           Privacidad y Más opciones son settings inline. */}
         <View style={[styles.listGroup, getShadow("xs")]}>
-          {isProfessional && (
-            <ActionListItem
-              label="Editar mi perfil"
-              icon={
-                <Ionicons
-                  name="create-outline"
-                  size={20}
-                  color={colors.brand.primary}
-                />
-              }
-              onPress={onEditProfile ?? (() => {})}
-              isFirst
-            />
-          )}
           <ActionListItem
             label={strings.userProfile.privacy}
             icon={
@@ -96,7 +101,7 @@ export function ProfileScreen({
               />
             }
             onPress={() => {}}
-            isFirst={!isProfessional}
+            isFirst
           />
           <ActionListItem
             label={strings.userProfile.moreOptions}
@@ -108,8 +113,22 @@ export function ProfileScreen({
               />
             }
             onPress={() => {}}
-            isLast
+            isLast={!isProfessional}
           />
+          {isProfessional && (
+            <ActionListItem
+              label="Editar mi perfil"
+              icon={
+                <Ionicons
+                  name="create-outline"
+                  size={20}
+                  color={colors.brand.primary}
+                />
+              }
+              onPress={onEditProfile ?? (() => {})}
+              isLast
+            />
+          )}
         </View>
 
         {/* ── CERRAR SESIÓN ───────────────────────────────────────────── */}
@@ -158,7 +177,7 @@ const styles = StyleSheet.create({
   },
 
   logoutWrapper: {
-    marginTop: spacing[20],
+    marginTop: spacing[6],
   },
   logoutBtn: {
     backgroundColor: colors.status.errorBg,

@@ -52,6 +52,10 @@ enable_confirmations = false
 otp_length = 6
 otp_expiry = 3600
 
+[auth.email.template.magic_link]
+subject = "Tu código de acceso — Tu Profesional"
+content_path = "./supabase/templates/otp.html"
+
 [auth.sms]
 enable_signup = false
 enable_confirmations = false

@@ -9,7 +9,7 @@ import { getInitials, getAvatarBgColor } from '@/shared/utils/avatarColor';
 // TIPOS
 // ─────────────────────────────────────────────────────────────────────────────
 
-type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
 
 interface AvatarProps {
   // La foto de perfil. Es el dato de mayor impacto en confianza del usuario.
@@ -20,6 +20,11 @@ interface AvatarProps {
   name: string;
 
   size?: AvatarSize;
+
+  // Forma: `circle` (default) o `rounded` (cuadrada con esquinas redondeadas).
+  // `rounded` se usa en hero de perfiles grandes, donde la foto funciona más
+  // como "portada" que como avatar.
+  rounded?: boolean;
 
   // Badges de estado superpuestos
   showVerifiedBadge?: boolean;    // checkmark jade (profesional verificado)
@@ -35,11 +40,12 @@ interface AvatarProps {
 
 // Dimensiones por tamaño
 const SIZE_MAP: Record<AvatarSize, { size: number; fontSize: number; badgeSize: number }> = {
-  xs: { size: 32,  fontSize: 12, badgeSize: 12 },
-  sm: { size: 44,  fontSize: 16, badgeSize: 16 },
-  md: { size: 56,  fontSize: 20, badgeSize: 18 },
-  lg: { size: 80,  fontSize: 28, badgeSize: 22 },
-  xl: { size: 100, fontSize: 34, badgeSize: 26 },
+  xs:  { size: 32,  fontSize: 12, badgeSize: 12 },
+  sm:  { size: 44,  fontSize: 16, badgeSize: 16 },
+  md:  { size: 56,  fontSize: 20, badgeSize: 18 },
+  lg:  { size: 80,  fontSize: 28, badgeSize: 22 },
+  xl:  { size: 100, fontSize: 34, badgeSize: 26 },
+  xxl: { size: 140, fontSize: 46, badgeSize: 32 },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -50,6 +56,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   imageUrl,
   name,
   size = 'md',
+  rounded = false,
   showVerifiedBadge = false,
   showAvailabilityDot = false,
   showCameraButton = false,
@@ -64,6 +71,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   const initials = getInitials(name);
   const bgColor = getAvatarBgColor(name);
   const showFallback = !imageUrl || imageError;
+  const frameRadius = rounded ? componentRadius.card : componentRadius.avatarCircle;
 
   const Container = onPress ? Pressable : View;
   const containerProps = onPress ? { onPress } : {};
@@ -80,7 +88,7 @@ export const Avatar: React.FC<AvatarProps> = ({
           {
             width: dim,
             height: dim,
-            borderRadius: componentRadius.avatarCircle,
+            borderRadius: frameRadius,
             backgroundColor: bgColor,
           },
         ]}
@@ -103,7 +111,7 @@ export const Avatar: React.FC<AvatarProps> = ({
             source={{ uri: imageUrl }}
             style={[
               StyleSheet.absoluteFillObject,
-              { borderRadius: componentRadius.avatarCircle },
+              { borderRadius: frameRadius },
               !imageLoaded && styles.hidden,
             ]}
             onLoad={() => setImageLoaded(true)}

@@ -28,8 +28,19 @@ export default function RootLayout() {
   // Se suscribe a cambios de auth (login/logout/token refresh).
   // Supabase emite INITIAL_SESSION al subscribirse, así que no hace falta
   // llamar a refresh() aparte — eso causaba doble llamada en el arranque.
+  //
+  // Filtrado:
+  //   - TOKEN_REFRESHED: Supabase rota el JWT cada hora. El user es el mismo,
+  //     el profile es el mismo y la ubicación es la misma. Hacer un refresh()
+  //     completo (3 queries) es puro overhead y abre una ventana de race que
+  //     puede tirar el status transitoriamente.
+  //   - USER_UPDATED: cambios de metadata internos de auth (ej. password) que
+  //     no afectan al guard.
   useEffect(() => {
-    const sub = onAuthStateChange((_event, _session) => {
+    const sub = onAuthStateChange((event, _session) => {
+      if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+        return;
+      }
       refresh();
     });
     return () => sub.unsubscribe();

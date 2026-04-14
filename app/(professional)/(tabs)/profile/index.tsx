@@ -3,6 +3,7 @@
 
 import { useState, useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 
 import { ProfileScreen } from "@/features/profile/screens/ProfileScreen";
 import { AppAlert } from "@/shared/components";
@@ -33,9 +34,7 @@ export default function ProfessionalProfile() {
       <ProfileScreen
         variant="professional"
         onLogout={loading ? undefined : () => setShowLogoutAlert(true)}
-        onEditProfile={() => {
-          // TODO: navegar al formulario de edición cuando exista
-        }}
+        onEditProfile={() => router.push("/(professional)/profile/edit-profile")}
       />
       <AppAlert
         visible={showLogoutAlert}

@@ -18,9 +18,17 @@ import {
 } from "@/shared/theme";
 import { strings } from "@/shared/utils/strings";
 import { ActionListItem } from "@/features/profile/components/ActionListItem";
+import { useAuthStore } from "@/features/auth/store/authStore";
+import { useProfessionalProfile } from "@/features/professionals/hooks/useProfessionalProfile";
 
 export default function ProfessionalHomeScreen() {
   const router = useRouter();
+
+  const sessionEmail     = useAuthStore((s) => s.session?.user.email ?? "");
+  const { professional } = useProfessionalProfile();
+
+  const displayName =
+    professional?.full_name?.trim() || sessionEmail || "";
 
   return (
     <View style={styles.screen}>
@@ -31,7 +39,7 @@ export default function ProfessionalHomeScreen() {
       <ScreenHero
         variant="welcome"
         overline={strings.home.welcomeLabel}
-        userName="Nombre Usuario"
+        userName={displayName}
       />
 
       <ScrollView
