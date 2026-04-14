@@ -1,9 +1,12 @@
 // Tests de integración para profileService
-// Testea: getProfile, createProfile, getProfessional, upsertProfessional
-// Corre contra Supabase local (supabase start)
+// Llaman las FUNCIONES EXPORTADAS del service (no el SDK directo) para que
+// cualquier bug en el service sea detectado por CI.
+//
+// Corre contra Supabase local (supabase start).
+
+import "../setup/mock-rn-deps"; // debe ir antes que cualquier import de services
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { adminClient } from "../setup/supabase-admin";
 import {
   createTestUser,
   authenticatedClient,
@@ -11,193 +14,194 @@ import {
 } from "../setup/test-users";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import {
+  getProfile,
+  createProfile,
+  getProfessional,
+  upsertProfessional,
+} from "@/shared/services/profileService";
+
 // ── Test data ──────────────────────────────────────────────────────────────
 
 const PREFIX = `profile-test-${Date.now()}`;
 const EMAILS = {
-  client: `${PREFIX}-client@test.local`,
+  client:       `${PREFIX}-client@test.local`,
   professional: `${PREFIX}-pro@test.local`,
-  other: `${PREFIX}-other@test.local`,
+  other:        `${PREFIX}-other@test.local`,
 };
 
 let clientUser: { id: string };
-let proUser: { id: string };
-let otherUser: { id: string };
+let proUser:    { id: string };
+let otherUser:  { id: string };
 let clientSupa: SupabaseClient;
-let proSupa: SupabaseClient;
-let otherSupa: SupabaseClient;
+let proSupa:    SupabaseClient;
+let otherSupa:  SupabaseClient;
 
 // ── Setup / Teardown ───────────────────────────────────────────────────────
 
 beforeAll(async () => {
   clientUser = await createTestUser(EMAILS.client);
-  proUser = await createTestUser(EMAILS.professional);
-  otherUser = await createTestUser(EMAILS.other);
+  proUser    = await createTestUser(EMAILS.professional);
+  otherUser  = await createTestUser(EMAILS.other);
 
   clientSupa = await authenticatedClient(EMAILS.client);
-  proSupa = await authenticatedClient(EMAILS.professional);
-  otherSupa = await authenticatedClient(EMAILS.other);
+  proSupa    = await authenticatedClient(EMAILS.professional);
+  otherSupa  = await authenticatedClient(EMAILS.other);
 });
 
 afterAll(async () => {
-  // Borrar cascade: auth.users → profiles → professionals → user_locations
   await deleteTestUser(clientUser.id);
   await deleteTestUser(proUser.id);
   await deleteTestUser(otherUser.id);
 });
 
-// ── Tests ──────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// getProfile / createProfile
+// ─────────────────────────────────────────────────────────────────────────────
 
 describe("profileService — getProfile / createProfile", () => {
   it("getProfile devuelve null para user sin profile", async () => {
-    const { data } = await clientSupa
-      .from("profiles")
-      .select("*")
-      .eq("id", clientUser.id)
-      .maybeSingle();
-
-    expect(data).toBeNull();
+    const profile = await getProfile(clientUser.id, clientSupa);
+    expect(profile).toBeNull();
   });
 
-  it("createProfile con role=client", async () => {
-    const { data, error } = await clientSupa
-      .from("profiles")
-      .upsert(
-        { id: clientUser.id, role: "client", email: EMAILS.client },
-        { onConflict: "id" }
-      )
-      .select()
-      .single();
+  it("createProfile crea el profile del user con role=client", async () => {
+    const profile = await createProfile(
+      {
+        userId: clientUser.id,
+        role:   "client",
+        email:  EMAILS.client,
+      },
+      clientSupa,
+    );
 
-    expect(error).toBeNull();
-    expect(data?.role).toBe("client");
-    expect(data?.email).toBe(EMAILS.client);
+    expect(profile.id).toBe(clientUser.id);
+    expect(profile.role).toBe("client");
+    expect(profile.email).toBe(EMAILS.client);
   });
 
-  it("createProfile con role=professional", async () => {
-    const { data, error } = await proSupa
-      .from("profiles")
-      .upsert(
-        { id: proUser.id, role: "professional", email: EMAILS.professional },
-        { onConflict: "id" }
-      )
-      .select()
-      .single();
+  it("createProfile crea el profile del user con role=professional", async () => {
+    const profile = await createProfile(
+      {
+        userId: proUser.id,
+        role:   "professional",
+        email:  EMAILS.professional,
+      },
+      proSupa,
+    );
 
-    expect(error).toBeNull();
-    expect(data?.role).toBe("professional");
+    expect(profile.role).toBe("professional");
   });
 
-  it("getProfile devuelve el profile creado", async () => {
-    const { data } = await clientSupa
-      .from("profiles")
-      .select("*")
-      .eq("id", clientUser.id)
-      .maybeSingle();
-
-    expect(data).not.toBeNull();
-    expect(data?.role).toBe("client");
-    expect(data?.id).toBe(clientUser.id);
+  it("getProfile devuelve el profile recién creado", async () => {
+    const profile = await getProfile(clientUser.id, clientSupa);
+    expect(profile).not.toBeNull();
+    expect(profile?.role).toBe("client");
+    expect(profile?.id).toBe(clientUser.id);
   });
 
-  it("createProfile es idempotente (doble upsert sin error)", async () => {
-    const { error } = await clientSupa
-      .from("profiles")
-      .upsert(
-        { id: clientUser.id, role: "client", email: EMAILS.client },
-        { onConflict: "id" }
-      )
-      .select()
-      .single();
-
-    expect(error).toBeNull();
+  it("createProfile es idempotente — no lanza al llamarse dos veces", async () => {
+    await expect(
+      createProfile(
+        {
+          userId: clientUser.id,
+          role:   "client",
+          email:  EMAILS.client,
+        },
+        clientSupa,
+      ),
+    ).resolves.toMatchObject({ id: clientUser.id, role: "client" });
   });
 
-  it("createProfile para otro user falla (RLS)", async () => {
-    const { error } = await clientSupa
-      .from("profiles")
-      .upsert(
-        { id: otherUser.id, role: "client", email: EMAILS.other },
-        { onConflict: "id" }
-      )
-      .select()
-      .single();
-
-    expect(error).not.toBeNull();
+  it("createProfile para otro user falla por RLS", async () => {
+    await expect(
+      createProfile(
+        {
+          userId: otherUser.id, // ← id ajeno
+          role:   "client",
+          email:  EMAILS.other,
+        },
+        clientSupa, // ← cliente autenticado como clientUser
+      ),
+    ).rejects.toThrow();
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// getProfessional / upsertProfessional
+// ─────────────────────────────────────────────────────────────────────────────
+
 describe("profileService — getProfessional / upsertProfessional", () => {
-  it("getProfessional devuelve null sin row", async () => {
-    const { data } = await proSupa
-      .from("professionals")
-      .select("*")
-      .eq("id", proUser.id)
-      .maybeSingle();
-
-    expect(data).toBeNull();
+  it("getProfessional devuelve null cuando no hay fila todavía", async () => {
+    const row = await getProfessional(proUser.id, proSupa);
+    expect(row).toBeNull();
   });
 
-  it("upsertProfessional crea row", async () => {
-    const { data, error } = await proSupa
-      .from("professionals")
-      .upsert(
-        {
-          id: proUser.id,
-          full_name: "Test Professional",
-          category: "psychology",
-          specialty: "Cognitiva",
-          sub_specialties: ["Ansiedad", "Depresión"],
-          attends_online: true,
-          attends_presencial: false,
-          is_active: true,
-        },
-        { onConflict: "id" }
-      )
-      .select()
-      .single();
+  it("upsertProfessional crea la fila completa", async () => {
+    const row = await upsertProfessional(
+      proUser.id,
+      {
+        full_name:          "Test Professional",
+        category:           "psychology",
+        specialty:          "Cognitiva",
+        sub_specialties:    ["Ansiedad", "Depresión"],
+        attends_online:     true,
+        attends_presencial: false,
+        is_active:          true,
+      },
+      proSupa,
+    );
 
-    expect(error).toBeNull();
-    expect(data?.full_name).toBe("Test Professional");
-    expect(data?.specialty).toBe("Cognitiva");
-    expect(data?.sub_specialties).toEqual(["Ansiedad", "Depresión"]);
-    expect(data?.attends_online).toBe(true);
+    expect(row.id).toBe(proUser.id);
+    expect(row.full_name).toBe("Test Professional");
+    expect(row.specialty).toBe("Cognitiva");
+    expect(row.sub_specialties).toEqual(["Ansiedad", "Depresión"]);
+    expect(row.attends_online).toBe(true);
+    expect(row.attends_presencial).toBe(false);
   });
 
-  it("upsertProfessional actualiza row existente", async () => {
-    const { data, error } = await proSupa
-      .from("professionals")
-      .upsert(
-        {
-          id: proUser.id,
-          full_name: "Test Professional Updated",
-          category: "psychology",
-          specialty: "Psicoanalisis",
-        },
-        { onConflict: "id" }
-      )
-      .select()
-      .single();
+  it("upsertProfessional actualiza la fila existente sin duplicar", async () => {
+    const row = await upsertProfessional(
+      proUser.id,
+      {
+        full_name: "Test Professional Updated",
+        category:  "psychology",
+        specialty: "Psicoanalisis",
+      },
+      proSupa,
+    );
 
-    expect(error).toBeNull();
-    expect(data?.specialty).toBe("Psicoanalisis");
-    expect(data?.full_name).toBe("Test Professional Updated");
+    expect(row.full_name).toBe("Test Professional Updated");
+    expect(row.specialty).toBe("Psicoanalisis");
+
+    // Verificar que getProfessional devuelve la versión nueva.
+    const fetched = await getProfessional(proUser.id, proSupa);
+    expect(fetched?.specialty).toBe("Psicoanalisis");
   });
 
-  it("upsertProfessional falla para role=client (RLS)", async () => {
-    const { error } = await clientSupa
-      .from("professionals")
-      .upsert(
+  it("upsertProfessional desde un user con role=client falla por RLS", async () => {
+    await expect(
+      upsertProfessional(
+        clientUser.id, // ← clientUser intentando crear su fila pro
         {
-          id: clientUser.id,
           full_name: "Hack",
-          category: "psychology",
+          category:  "psychology",
         },
-        { onConflict: "id" }
-      )
-      .select()
-      .single();
+        clientSupa,
+      ),
+    ).rejects.toThrow();
+  });
 
-    expect(error).not.toBeNull();
+  it("upsertProfessional para id ajeno falla por RLS (WITH CHECK)", async () => {
+    await expect(
+      upsertProfessional(
+        proUser.id, // ← id del pro real
+        {
+          full_name: "Robado",
+          category:  "psychology",
+        },
+        otherSupa, // ← autenticado como otro user
+      ),
+    ).rejects.toThrow();
   });
 });
