@@ -3,26 +3,31 @@
 -- =============================================================================
 -- RLS tests para el bucket `professional-photos` (migration 0005).
 --
--- Cubrimos los 5 casos canónicos + verificación de que el bucket existe:
+-- Cubrimos los casos canónicos que SON ejecutables por SQL directo:
 --   1. Bucket existe con config correcta
 --   2. Owner puede INSERT en su path (userId/...)
 --   3. User ajeno NO puede INSERT en path de otro
 --   4. Anon NO puede INSERT
 --   5. Owner puede UPDATE/reemplazar su archivo
---   6. User ajeno NO puede UPDATE archivo de otro (0 rows)
---   7. Owner puede DELETE su archivo
---   8. User ajeno NO puede DELETE archivo de otro (0 rows)
---   9. SELECT es público (authenticated y anon)
+--   6. UPDATE afectó el registro (verificamos que cambió)
+--   7. User ajeno intenta UPDATE pero 0 rows
+--   8. El registro NO fue modificado por el ajeno
+--   9. SELECT es público (anon puede leer metadata)
+--
+-- Nota: el DELETE directo sobre storage.objects está bloqueado por el trigger
+-- `storage.protect_delete()` (Supabase lo agregó para proteger archivos
+-- huérfanos). Ese caso se cubre en el integration test con la Storage API
+-- (tests/integration/storage-service.test.ts — "owner can delete own files").
 --
 -- Nota sobre el "0 rows" pattern:
---   En PostgreSQL, cuando RLS bloquea un UPDATE/DELETE, no lanza error — la
+--   En PostgreSQL, cuando RLS bloquea un UPDATE, no lanza error — la
 --   operación es válida pero afecta 0 filas. Por eso usamos `lives_ok` +
 --   chequeo posterior del estado, no `throws_ok`.
 -- =============================================================================
 
 BEGIN;
 
-SELECT plan(10);
+SELECT plan(9);
 
 -- ── Setup ──────────────────────────────────────────────────────────────────
 
@@ -148,17 +153,9 @@ SELECT is(
   'SELECT: anon puede leer metadata de objetos del bucket'
 );
 
--- ── Test 8: Owner puede DELETE su archivo ──────────────────────────────────
-
-SELECT tests.authenticate_as(:'alice_id'::uuid);
-SELECT lives_ok(
-  format(
-    'DELETE FROM storage.objects WHERE bucket_id = %L AND name = %L',
-    'professional-photos',
-    :'alice_id' || '/avatar.png'
-  ),
-  'DELETE: owner borra su propio archivo'
-);
+-- DELETE del owner: Supabase bloquea DELETE directo sobre storage.objects
+-- con el trigger `storage.protect_delete()`. Por eso este caso se testea a
+-- nivel Storage API en el integration test (storage-service.test.ts), no acá.
 
 SELECT * FROM finish();
 

@@ -5,6 +5,12 @@
 --   Pro A: Centro Mendoza    (-32.8908, -68.8272)
 --   Pro B: Godoy Cruz        (-32.9264, -68.8448) — ~4km del centro
 --   Pro C: Buenos Aires      (-34.6037, -58.3816) — ~1000km
+--
+-- NOTA importante sobre aislamiento:
+--   El seed.sql inserta un profesional en Mendoza (Valentina Ruiz) que queda
+--   en la DB cuando supabase start aplica el seed. Por eso cada test que
+--   cuenta resultados filtra por IDs propios (id IN (pro_a, pro_b, pro_c))
+--   para no contar profesionales externos.
 -- =============================================================================
 
 BEGIN;
@@ -60,10 +66,12 @@ SELECT tests.create_supabase_user('nearby-client@test.local', 'client')
 
 -- ── Tests ──────────────────────────────────────────────────────────────────
 
--- Test 1: Radio 10km desde centro Mendoza devuelve Pro A + Pro B
+-- Test 1: Radio 10km desde centro Mendoza devuelve Pro A + Pro B (de los del test)
 SELECT tests.authenticate_as(:'client_id'::uuid);
 SELECT is(
-  (SELECT count(*)::int FROM public.nearby_professionals(-32.8908, -68.8272, 10000)),
+  (SELECT count(*)::int
+   FROM public.nearby_professionals(-32.8908, -68.8272, 10000)
+   WHERE id IN (:'pro_a_id'::uuid, :'pro_b_id'::uuid, :'pro_c_id'::uuid)),
   2,
   'nearby: radio 10km devuelve 2 pros de Mendoza'
 );
@@ -81,7 +89,9 @@ SELECT tests.reset_auth();
 UPDATE public.professionals SET is_active = false WHERE id = :'pro_a_id'::uuid;
 SELECT tests.authenticate_as(:'client_id'::uuid);
 SELECT is(
-  (SELECT count(*)::int FROM public.nearby_professionals(-32.8908, -68.8272, 10000)),
+  (SELECT count(*)::int
+   FROM public.nearby_professionals(-32.8908, -68.8272, 10000)
+   WHERE id IN (:'pro_a_id'::uuid, :'pro_b_id'::uuid, :'pro_c_id'::uuid)),
   1,
   'nearby: pro inactivo excluido del resultado'
 );
@@ -98,16 +108,20 @@ SELECT ok(
   'nearby: columnas retornadas no son NULL'
 );
 
--- Test 5: Radio 1km solo devuelve Pro A (centro)
+-- Test 5: Radio 1km solo devuelve Pro A (centro) — dentro de los del test
 SELECT is(
-  (SELECT count(*)::int FROM public.nearby_professionals(-32.8908, -68.8272, 1000)),
+  (SELECT count(*)::int
+   FROM public.nearby_professionals(-32.8908, -68.8272, 1000)
+   WHERE id IN (:'pro_a_id'::uuid, :'pro_b_id'::uuid, :'pro_c_id'::uuid)),
   1,
   'nearby: radio 1km solo devuelve pro más cercano'
 );
 
 -- Test 6: Default radius_m=10000 funciona (sin pasar tercer param)
 SELECT is(
-  (SELECT count(*)::int FROM public.nearby_professionals(-32.8908, -68.8272)),
+  (SELECT count(*)::int
+   FROM public.nearby_professionals(-32.8908, -68.8272)
+   WHERE id IN (:'pro_a_id'::uuid, :'pro_b_id'::uuid, :'pro_c_id'::uuid)),
   2,
   'nearby: default radius_m=10000 funciona'
 );
@@ -122,7 +136,9 @@ SELECT is(
 -- Test 8: Callable por anon (SECURITY DEFINER + GRANT to anon)
 SELECT tests.authenticate_as_anon();
 SELECT is(
-  (SELECT count(*)::int FROM public.nearby_professionals(-32.8908, -68.8272, 10000)),
+  (SELECT count(*)::int
+   FROM public.nearby_professionals(-32.8908, -68.8272, 10000)
+   WHERE id IN (:'pro_a_id'::uuid, :'pro_b_id'::uuid, :'pro_c_id'::uuid)),
   2,
   'nearby: callable por anon'
 );
