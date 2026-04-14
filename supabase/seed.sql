@@ -38,13 +38,14 @@ VALUES (
 ON CONFLICT (id) DO NOTHING;
 
 -- ── 2. Profile ──────────────────────────────────────────────────────────
+-- Desde la migration 0002 `full_name` y `phone` viven en `professionals`;
+-- `profiles` tiene (id, role, email).
 
-INSERT INTO public.profiles (id, role, full_name, phone, created_at, updated_at)
+INSERT INTO public.profiles (id, role, email, created_at, updated_at)
 VALUES (
   v_uid,
   'professional',
-  'Valentina Ruiz',
-  '+54 9 261 412-8834',
+  'valentina.ruiz@test.local',
   now(), now()
 )
 ON CONFLICT (id) DO NOTHING;
@@ -53,6 +54,8 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.professionals (
   id,
+  full_name,
+  phone,
   category,
   dni,
   license,
@@ -69,6 +72,8 @@ INSERT INTO public.professionals (
 )
 VALUES (
   v_uid,
+  'Valentina Ruiz',
+  '+54 9 261 412-8834',
   'psychology',
   '28.450.771',
   'MN 85.342',

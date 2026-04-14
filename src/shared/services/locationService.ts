@@ -6,8 +6,13 @@
 //   La columna `geom` es geography(Point, 4326). Construir el WKB en cliente
 //   acopla el frontend al schema y mete strings raros en JSON. La RPC encapsula
 //   ST_SetSRID(ST_MakePoint(lng,lat),4326)::geography y mantiene el cliente limpio.
+//
+// Inyección de cliente:
+//   Las funciones que hablan con Supabase (upsertUserLocation, getMyUserLocation,
+//   hasUserLocation) aceptan un SupabaseClient opcional. Default = singleton.
 
 import * as Location from "expo-location";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabase } from "@/shared/services/supabase";
 import type { Database } from "@/shared/types/database";
@@ -115,9 +120,10 @@ export async function geocodeAddress(
 export async function upsertUserLocation(
   coords: Coords,
   address: AddressFields,
+  client: SupabaseClient = supabase,
 ): Promise<UserLocation> {
   console.log("[locationService::upsertUserLocation] Llamando RPC upsert_user_location →", `lat: ${coords.lat}, lng: ${coords.lng} | ${address.street} ${address.number}, ${address.city ?? "—"}, ${address.province ?? "Mendoza"}`);
-  const { data, error } = await supabase.rpc("upsert_user_location", {
+  const { data, error } = await client.rpc("upsert_user_location", {
     p_lat:         coords.lat,
     p_lng:         coords.lng,
     p_street:      address.street,
@@ -184,9 +190,10 @@ interface GetMyUserLocationRow {
  */
 export async function getMyUserLocation(
   userId: string,
+  client: SupabaseClient = supabase,
 ): Promise<UserLocationAddress | null> {
   console.log("[locationService::getMyUserLocation] Llamando RPC get_my_user_location — userId:", userId);
-  const { data, error } = await supabase.rpc(
+  const { data, error } = await client.rpc(
     // Cast necesario hasta regenerar tipos con `supabase gen types typescript`.
     "get_my_user_location" as never,
   );
@@ -218,9 +225,12 @@ export async function getMyUserLocation(
  * ¿El user ya tiene una ubicación cargada? Lo usa el authStore para decidir
  * si hay que mandarlo al onboarding de location o al home.
  */
-export async function hasUserLocation(userId: string): Promise<boolean> {
+export async function hasUserLocation(
+  userId: string,
+  client: SupabaseClient = supabase,
+): Promise<boolean> {
   console.log("[locationService::hasUserLocation] Verificando si userId tiene ubicación →", userId);
-  const { count, error } = await supabase
+  const { count, error } = await client
     .from("user_locations")
     .select("user_id", { count: "exact", head: true })
     .eq("user_id", userId);

@@ -2,6 +2,14 @@
 // Capa: shared/services
 // Funciones puras tipadas con Database. Las consumen el authStore y las
 // pantallas de onboarding (UserTypeScreen, ProfessionalFormScreen).
+//
+// Inyección de cliente:
+//   Cada función acepta un SupabaseClient opcional como último parámetro.
+//   En producción no se pasa — se usa el singleton `supabase`.
+//   En tests se pasa un cliente autenticado contra Supabase local para
+//   ejecutar las RLS policies con un JWT real.
+
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabase } from "@/shared/services/supabase";
 import type { Database } from "@/shared/types/database";
@@ -17,9 +25,12 @@ type ProfessionalUpsert = Database["public"]["Tables"]["professionals"]["Insert"
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Devuelve el profile del user. `null` si todavía no eligió rol. */
-export async function getProfile(userId: string): Promise<Profile | null> {
+export async function getProfile(
+  userId: string,
+  client: SupabaseClient = supabase,
+): Promise<Profile | null> {
   console.log("[profileService::getProfile] Consultando profile — userId:", userId);
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("profiles")
     .select("*")
     .eq("id", userId)
@@ -36,13 +47,16 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   return data;
 }
 
-export async function createProfile(input: {
-  userId: string;
-  role:   UserRole;
-  email:  string;
-}): Promise<Profile> {
+export async function createProfile(
+  input: {
+    userId: string;
+    role:   UserRole;
+    email:  string;
+  },
+  client: SupabaseClient = supabase,
+): Promise<Profile> {
   console.log("[profileService::createProfile] Upsert de profile — userId:", input.userId, "| rol:", input.role, "| email:", input.email);
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("profiles")
     .upsert(
       {
@@ -66,9 +80,12 @@ export async function createProfile(input: {
 // PROFESSIONALS
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getProfessional(userId: string): Promise<Professional | null> {
+export async function getProfessional(
+  userId: string,
+  client: SupabaseClient = supabase,
+): Promise<Professional | null> {
   console.log("[profileService::getProfessional] Consultando fila professionals — userId:", userId);
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("professionals")
     .select("*")
     .eq("id", userId)
@@ -92,9 +109,10 @@ export async function getProfessional(userId: string): Promise<Professional | nu
 export async function upsertProfessional(
   userId: string,
   data: Omit<ProfessionalUpsert, "id">,
+  client: SupabaseClient = supabase,
 ): Promise<Professional> {
   console.log("[profileService::upsertProfessional] Upsert de profesional — userId:", userId, "| especialidad:", data.specialty ?? "(sin especialidad)", "| online:", data.attends_online, "| presencial:", data.attends_presencial);
-  const { data: row, error } = await supabase
+  const { data: row, error } = await client
     .from("professionals")
     .upsert({ id: userId, ...data }, { onConflict: "id" })
     .select()

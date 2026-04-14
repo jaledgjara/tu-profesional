@@ -1,51 +1,51 @@
-// Tests de integración para storageService
-// Testea: upload a bucket professional-photos, getPublicUrl, upsert
-// Corre contra Supabase local (supabase start)
+// Tests de integración para storageService.
+// Llaman la FUNCIÓN EXPORTADA `uploadProfessionalPhoto` (no el SDK directo)
+// y validan que las RLS policies del bucket bloqueen escrituras cruzadas.
 //
-// NOTA: El bucket "professional-photos" debe existir en Supabase local.
-// Si no existe, crearlo desde el Dashboard (localhost:54323) o via SQL:
-//   INSERT INTO storage.buckets (id, name, public) VALUES ('professional-photos', 'professional-photos', true);
+// Para que el fetch() interno del service funcione en Node, pasamos el
+// archivo como data URL (data:image/png;base64,...) — fetch nativo de Node 18+
+// soporta este scheme.
+//
+// Precondición: la migration 0005_storage_policies.sql debe estar aplicada
+// (supabase start la corre automáticamente).
+
+import "../setup/mock-rn-deps"; // antes que cualquier import de services
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { adminClient } from "../setup/supabase-admin";
 import {
   createTestUser,
   authenticatedClient,
+  anonClient,
   deleteTestUser,
 } from "../setup/test-users";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { uploadProfessionalPhoto } from "@/shared/services/storageService";
+
 const PREFIX = `storage-test-${Date.now()}`;
 const EMAILS = {
-  pro: `${PREFIX}-pro@test.local`,
+  pro:   `${PREFIX}-pro@test.local`,
   other: `${PREFIX}-other@test.local`,
 };
 
-let proUser: { id: string };
+let proUser:   { id: string };
 let otherUser: { id: string };
-let proSupa: SupabaseClient;
+let proSupa:   SupabaseClient;
 let otherSupa: SupabaseClient;
 
-// Imagen falsa de 1x1 pixel PNG
-const TINY_PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-  "base64"
-);
+// 1x1 px PNG transparente en data URL — fetch nativo de Node 18+ lo soporta.
+const TINY_PNG_DATA_URL =
+  "data:image/png;base64," +
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
 beforeAll(async () => {
-  // Asegurar que el bucket existe
-  await adminClient.storage.createBucket("professional-photos", {
-    public: true,
-    fileSizeLimit: 5242880, // 5MB
-  });
-
-  proUser = await createTestUser(EMAILS.pro);
+  proUser   = await createTestUser(EMAILS.pro);
   otherUser = await createTestUser(EMAILS.other);
 
-  proSupa = await authenticatedClient(EMAILS.pro);
+  proSupa   = await authenticatedClient(EMAILS.pro);
   otherSupa = await authenticatedClient(EMAILS.other);
 
-  // Crear profiles
   await proSupa
     .from("profiles")
     .upsert(
@@ -61,78 +61,77 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // Limpiar archivos subidos
+  // Cleanup con adminClient — los archivos subidos por el test permanecen
+  // en Storage hasta que alguien los borre; usamos service_role para garantizar
+  // que la limpieza no dependa de policies.
   await adminClient.storage
     .from("professional-photos")
-    .remove([`${proUser.id}/avatar.png`, `${otherUser.id}/avatar.png`]);
+    .remove([
+      `${proUser.id}/avatar.png`,
+      `${otherUser.id}/avatar.png`,
+    ])
+    .catch(() => {});
 
   await deleteTestUser(proUser.id);
   await deleteTestUser(otherUser.id);
 });
 
-describe("storageService — upload professional photo", () => {
-  // NOTA: El bucket no tiene storage policies configuradas todavía.
-  // Usamos adminClient (service_role) que bypasea RLS para testear
-  // la mecánica de upload/getPublicUrl. Cuando se agreguen storage
-  // policies, estos tests se pueden cambiar a usar proSupa.
+// ─────────────────────────────────────────────────────────────────────────────
+// Happy path — owner sube a su propio path
+// ─────────────────────────────────────────────────────────────────────────────
 
-  it("sube archivo al bucket professional-photos", async () => {
-    const path = `${proUser.id}/avatar.png`;
-    const { error } = await adminClient.storage
-      .from("professional-photos")
-      .upload(path, TINY_PNG, {
-        contentType: "image/png",
-        upsert: true,
-      });
+describe("storageService — uploadProfessionalPhoto (owner path)", () => {
+  it("sube la foto y devuelve URL pública accesible", async () => {
+    const url = await uploadProfessionalPhoto(
+      proUser.id,
+      TINY_PNG_DATA_URL,
+      proSupa,
+    );
 
-    expect(error).toBeNull();
+    expect(url).toContain("professional-photos");
+    expect(url).toContain(proUser.id);
+    expect(url).toContain("avatar.png");
+
+    // La URL debe resolver a un 200 (bucket público).
+    const res = await fetch(url);
+    expect(res.status).toBe(200);
   });
 
-  it("getPublicUrl devuelve URL válida", () => {
-    const path = `${proUser.id}/avatar.png`;
-    const {
-      data: { publicUrl },
-    } = adminClient.storage.from("professional-photos").getPublicUrl(path);
+  it("el segundo upload del mismo user reemplaza (upsert), no duplica", async () => {
+    const url = await uploadProfessionalPhoto(
+      proUser.id,
+      TINY_PNG_DATA_URL,
+      proSupa,
+    );
+    expect(url).toBeTruthy();
 
-    expect(publicUrl).toContain("professional-photos");
-    expect(publicUrl).toContain(proUser.id);
-    expect(publicUrl).toContain("avatar.png");
+    // Verificar que solo hay 1 archivo bajo el path del user.
+    const { data } = await adminClient.storage
+      .from("professional-photos")
+      .list(proUser.id);
+
+    const avatars = (data ?? []).filter((f) => f.name === "avatar.png");
+    expect(avatars).toHaveLength(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Security — RLS bloquea escrituras cruzadas
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("storageService — RLS policies enforce path ownership", () => {
+  it("otherSupa no puede escribir en el path de proUser", async () => {
+    // El service calcula el path como `${userId}/avatar.ext`. Pasamos
+    // proUser.id como primer arg pero con otherSupa como cliente → debe fallar.
+    await expect(
+      uploadProfessionalPhoto(proUser.id, TINY_PNG_DATA_URL, otherSupa),
+    ).rejects.toThrow();
   });
 
-  it("upsert sobrescribe archivo existente", async () => {
-    const path = `${proUser.id}/avatar.png`;
-    const { error } = await adminClient.storage
-      .from("professional-photos")
-      .upload(path, TINY_PNG, {
-        contentType: "image/png",
-        upsert: true,
-      });
-
-    expect(error).toBeNull();
-  });
-
-  it("upload por otro user al path de otro falla (si hay storage RLS)", async () => {
-    const path = `${proUser.id}/avatar.png`;
-    const { error } = await otherSupa.storage
-      .from("professional-photos")
-      .upload(path, TINY_PNG, {
-        contentType: "image/png",
-        upsert: true,
-      });
-
-    // Si hay storage policies configuradas, error debería no ser null.
-    // Si el bucket es público sin policies, este test puede pasar sin error.
-    // En ese caso, marcar como skip o ajustar cuando se agreguen policies.
-    // Por ahora verificamos que el upload intenta ejecutarse.
-    // Si el bucket tiene RLS:
-    if (error) {
-      expect(error).not.toBeNull();
-    } else {
-      // Bucket público sin RLS — test pasa pero documenta que falta policy
-      console.warn(
-        "⚠ Storage bucket sin RLS: otro user pudo subir al path ajeno. Agregar storage policies."
-      );
-      expect(true).toBe(true);
-    }
+  it("anon no puede subir nada", async () => {
+    const anon = anonClient();
+    await expect(
+      uploadProfessionalPhoto(proUser.id, TINY_PNG_DATA_URL, anon),
+    ).rejects.toThrow();
   });
 });
