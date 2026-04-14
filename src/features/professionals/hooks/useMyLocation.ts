@@ -1,18 +1,15 @@
 // Hook: useMyLocation
 // Capa: hook (features/professionals)
-// Carga la fila de `user_locations` del usuario logueado.
-// Aplica a cualquier rol (cliente o profesional), pero hoy lo consume la vista
-// "Mi portafolio" para mostrar la dirección que el profesional cargó en el
-// registro. Si el cliente lo termina necesitando, se puede mover a un lugar
-// más compartido — por ahora vive junto a `useProfessionalProfile`.
+//
+// Wrapper sobre `myLocationStore` (Zustand). Estado compartido entre todas las
+// pantallas que muestran la ubicación del user logueado, así un upsert se
+// refleja instantáneamente en cualquier vista que la consuma.
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
-import {
-  getMyUserLocation,
-  type UserLocationAddress,
-} from "@/shared/services/locationService";
+import { useMyLocationStore } from "@/features/professionals/store/myLocationStore";
+import type { UserLocationAddress } from "@/shared/services/locationService";
 
 interface UseMyLocationResult {
   location:  UserLocationAddress | null;
@@ -24,35 +21,18 @@ interface UseMyLocationResult {
 export function useMyLocation(): UseMyLocationResult {
   const userId = useAuthStore((s) => s.session?.user.id ?? null);
 
-  const [location,  setLocation]  = useState<UserLocationAddress | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error,     setError]     = useState<Error | null>(null);
-
-  const load = useCallback(async () => {
-    if (!userId) {
-      setLocation(null);
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-    try {
-      const row = await getMyUserLocation(userId);
-      setLocation(row);
-    } catch (err) {
-      console.error("[useMyLocation] Error al cargar user_locations:", err);
-      setError(
-        err instanceof Error
-          ? err
-          : new Error("No pudimos cargar tu ubicación. Intentá de nuevo."),
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
+  const location      = useMyLocationStore((s) => s.location);
+  const isLoading     = useMyLocationStore((s) => s.isLoading);
+  const error         = useMyLocationStore((s) => s.error);
+  const currentUserId = useMyLocationStore((s) => s.currentUserId);
+  const load          = useMyLocationStore((s) => s.load);
+  const refresh       = useMyLocationStore((s) => s.refresh);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (userId && userId !== currentUserId) {
+      load(userId);
+    }
+  }, [userId, currentUserId, load]);
 
-  return { location, isLoading, error, refetch: load };
+  return { location, isLoading, error, refetch: refresh };
 }

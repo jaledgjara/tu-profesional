@@ -15,6 +15,8 @@ import type { Session } from "@supabase/supabase-js";
 import * as authService from "@/shared/services/authService";
 import * as profileService from "@/shared/services/profileService";
 import { hasUserLocation } from "@/shared/services/locationService";
+import { useProfessionalProfileStore } from "@/features/professionals/store/professionalProfileStore";
+import { useMyLocationStore } from "@/features/professionals/store/myLocationStore";
 
 import type { Profile } from "@/shared/services/profileService";
 
@@ -117,6 +119,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     console.log("[authStore::signOut] Limpiando store y cerrando sesión…");
     await authService.signOut();
     set({ session: null, profile: null, status: "unauthenticated" });
+    // Limpiar caches de data del user — sino el siguiente login muestra
+    // brevemente la info del user anterior antes del primer fetch.
+    useProfessionalProfileStore.getState().reset();
+    useMyLocationStore.getState().reset();
     console.log("[authStore::signOut] Store limpio → status: unauthenticated");
   },
 }));

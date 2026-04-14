@@ -1,18 +1,18 @@
 // Hook: useProfessionalProfile
 // Capa: hook (features/professionals)
-// Carga la fila de `professionals` del usuario logueado desde Supabase.
-// Lo consumen las pantallas del cliente profesional (home, briefcase, profile).
 //
-// No confundir con `useProfessionalDetail(id)`, que trae un profesional arbitrario
-// (el que un cliente final está viendo) por id.
+// Wrapper sobre `professionalProfileStore` (Zustand). Cada screen que lo usa
+// se suscribe al MISMO state, así un upsert en edit-profile se ve reflejado
+// instantáneamente en briefcase, home y profile sin pasar props ni eventos.
+//
+// La firma `{ professional, isLoading, error, refetch }` se mantiene igual
+// para no romper a los consumidores existentes.
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
-import {
-  getProfessional,
-  type Professional as ProfessionalRow,
-} from "@/shared/services/profileService";
+import { useProfessionalProfileStore } from "@/features/professionals/store/professionalProfileStore";
+import type { Professional as ProfessionalRow } from "@/shared/services/profileService";
 
 interface UseProfessionalProfileResult {
   professional: ProfessionalRow | null;
@@ -24,35 +24,22 @@ interface UseProfessionalProfileResult {
 export function useProfessionalProfile(): UseProfessionalProfileResult {
   const userId = useAuthStore((s) => s.session?.user.id ?? null);
 
-  const [professional, setProfessional] = useState<ProfessionalRow | null>(null);
-  const [isLoading,    setIsLoading]    = useState<boolean>(false);
-  const [error,        setError]        = useState<Error | null>(null);
+  // Selectores granulares — cada componente sólo se re-renderiza cuando
+  // cambia el slice que realmente lee.
+  const professional   = useProfessionalProfileStore((s) => s.professional);
+  const isLoading      = useProfessionalProfileStore((s) => s.isLoading);
+  const error          = useProfessionalProfileStore((s) => s.error);
+  const currentUserId  = useProfessionalProfileStore((s) => s.currentUserId);
+  const load           = useProfessionalProfileStore((s) => s.load);
+  const refresh        = useProfessionalProfileStore((s) => s.refresh);
 
-  const load = useCallback(async () => {
-    if (!userId) {
-      setProfessional(null);
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-    try {
-      const row = await getProfessional(userId);
-      setProfessional(row);
-    } catch (err) {
-      console.error("[useProfessionalProfile] Error al cargar fila de professionals:", err);
-      setError(
-        err instanceof Error
-          ? err
-          : new Error("No pudimos cargar tu perfil profesional. Intentá de nuevo."),
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
-
+  // Carga inicial / cuando cambia el user (login/logout). El store deduplica
+  // si ya hay data del mismo user, así no spammeamos la red.
   useEffect(() => {
-    load();
-  }, [load]);
+    if (userId && userId !== currentUserId) {
+      load(userId);
+    }
+  }, [userId, currentUserId, load]);
 
-  return { professional, isLoading, error, refetch: load };
+  return { professional, isLoading, error, refetch: refresh };
 }

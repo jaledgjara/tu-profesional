@@ -7,6 +7,7 @@
 // para esos campos y reviews todavía no existen en el schema.
 
 import { useMemo } from "react";
+import { View, StyleSheet } from "react-native";
 
 import { ProfessionalBriefcaseScreen } from "@/features/professionals/screens/ProfessionalBriefcaseScreen";
 import type {
@@ -16,16 +17,34 @@ import type {
 import type { Professional } from "@/features/professionals/types";
 import { useProfessionalProfile } from "@/features/professionals/hooks/useProfessionalProfile";
 import { useMyLocation } from "@/features/professionals/hooks/useMyLocation";
+import { MiniLoader } from "@/shared/components";
+import { colors } from "@/shared/theme";
 import type { Professional as ProfessionalRow } from "@/shared/services/profileService";
 import type { UserLocationAddress } from "@/shared/services/locationService";
 
 export default function MyPortfolioScreen() {
-  const { professional: row } = useProfessionalProfile();
-  const { location }          = useMyLocation();
+  const { professional: row, isLoading: profileLoading } = useProfessionalProfile();
+  const { location, isLoading: locationLoading }         = useMyLocation();
 
   const professional = useMemo(() => (row ? mapRowToProfessional(row) : null), [row]);
   const socialLinks  = useMemo(() => (row ? buildSocialLinks(row) : []), [row]);
   const address      = useMemo(() => mapLocationToAddress(location), [location]);
+
+  // Full-screen loader cuando:
+  //   · No tenemos data aún Y alguno de los hooks está cargando (primer mount).
+  //   · O cuando hay refresh activo y todavía no llegó la data nueva.
+  // Si ya hay data y el refresh ronda en background, se muestra la última versión
+  // y se actualiza in-place cuando llega — no parpadea con loader.
+  const isInitialLoading =
+    (!row && profileLoading) || (!location && locationLoading);
+
+  if (isInitialLoading) {
+    return (
+      <View style={styles.loaderWrap}>
+        <MiniLoader />
+      </View>
+    );
+  }
 
   if (!row || !professional) return null;
 
@@ -127,3 +146,16 @@ function buildSocialLinks(row: ProfessionalRow): SocialLinkData[] {
 
   return links;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STYLES
+// ─────────────────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  loaderWrap: {
+    flex:            1,
+    alignItems:      "center",
+    justifyContent:  "center",
+    backgroundColor: colors.background.screen,
+  },
+});
