@@ -31,6 +31,8 @@ export interface ProfileScreenProps {
   variant:        "client" | "professional";
   onEditProfile?: () => void;
   onLogout?:      () => void;
+  onPrivacy?:     () => void;
+  onMoreOptions?: () => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -41,6 +43,8 @@ export function ProfileScreen({
   variant,
   onEditProfile,
   onLogout,
+  onPrivacy,
+  onMoreOptions,
 }: ProfileScreenProps) {
   // Los dos clientes comparten título y label de logout ("Mi Perfil" / "Cerrar sesión")
   // pero las claves están separadas en strings para permitir copy distinto a futuro.
@@ -100,7 +104,7 @@ export function ProfileScreen({
                 color={colors.brand.primary}
               />
             }
-            onPress={() => {}}
+            onPress={onPrivacy ?? (() => {})}
             isFirst
           />
           <ActionListItem
@@ -112,7 +116,7 @@ export function ProfileScreen({
                 color={colors.brand.primary}
               />
             }
-            onPress={() => {}}
+            onPress={onMoreOptions ?? (() => {})}
             isLast={!isProfessional}
           />
           {isProfessional && (

@@ -23,7 +23,7 @@ import * as ImagePicker from "expo-image-picker";
 
 import {
   AppHeader, AppAlert, IconButton, Avatar, TextInput,
-  Dropdown, Button, StickyBottomBar,
+  Dropdown, Button, StickyBottomBar, ScreenHero,
 } from "@/shared/components";
 import {
   colors, typography, spacing, layout, componentRadius,
@@ -66,6 +66,18 @@ export interface ProfessionalFormProps {
   lockPersonalInfo?: boolean;
   /** Navegación del botón atrás del header. */
   onBack?: () => void;
+  /**
+   * Título opcional que se renderiza en un ScreenHero debajo del AppHeader.
+   * Usado en el flujo de edición (/profile/edit-profile) para dar contexto,
+   * ya que en onboarding el "dónde estoy" es obvio y no hace falta.
+   */
+  title?: string;
+  /**
+   * Footer compacto: reduce padding del StickyBottomBar y usa botón md.
+   * Pensado para edit-profile donde el usuario quiere ver más campos de
+   * una sola vez; el onboarding conserva el footer prominente.
+   */
+  compactFooter?: boolean;
 }
 
 interface AlertState {
@@ -89,6 +101,8 @@ export function ProfessionalForm({
   isSubmitting = false,
   lockPersonalInfo = false,
   onBack,
+  title,
+  compactFooter = false,
 }: ProfessionalFormProps) {
 
   // ── ALERT ─────────────────────────────────────────────────────────────────
@@ -251,6 +265,8 @@ export function ProfessionalForm({
           ) : undefined
         }
       />
+
+      {title && <ScreenHero variant="title" title={title} />}
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -501,11 +517,11 @@ export function ProfessionalForm({
         </ScrollView>
 
         {/* ── CTA ─────────────────────────────────────────── */}
-        <StickyBottomBar>
+        <StickyBottomBar compact={compactFooter}>
           <Button
             label={isSubmitting ? submittingLabel : submitLabel}
             variant="primary"
-            size="lg"
+            size={compactFooter ? "md" : "lg"}
             fullWidth
             uppercase
             disabled={!canSave || isSubmitting}

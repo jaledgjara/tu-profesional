@@ -73,6 +73,8 @@ export default function EditProfileScreen() {
         isSubmitting={saving}
         lockPersonalInfo
         onBack={() => router.back()}
+        title="Editar Perfil"
+        compactFooter
       />
       <AppAlert
         visible={alert.visible}

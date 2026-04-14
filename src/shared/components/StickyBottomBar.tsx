@@ -8,6 +8,12 @@ interface StickyBottomBarProps {
   style?:    ViewStyle;
   noBorder?: boolean;
   transparent?: boolean;
+  /**
+   * Reduce el padding vertical para liberar espacio al contenido scrolleable.
+   * Pensado para pantallas de edición donde el usuario quiere ver más campos
+   * de una sin scroll extra. El safe area inset se respeta siempre.
+   */
+  compact?: boolean;
 }
 
 export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
@@ -15,6 +21,7 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
   style,
   noBorder     = false,
   transparent  = false,
+  compact      = false,
 }) => {
   const insets = useSafeAreaInsets();
 
@@ -23,7 +30,11 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
       style={[
         styles.container,
         {
-          paddingBottom:    insets.bottom + spacing[10],
+          // Modo compact: paddingTop y paddingBottom simétricos respecto al
+          // safe area inset → el botón queda visualmente centrado dentro del
+          // rectángulo blanco del footer, aun con home indicator en iPhone.
+          paddingTop:       compact ? insets.bottom + spacing[1] : spacing[3],
+          paddingBottom:    insets.bottom + (compact ? spacing[1] : spacing[10]),
           backgroundColor:  transparent ? colors.palette.transparent : colors.background.card,
           borderTopWidth:   noBorder ? 0 : 1,
           borderTopColor:   colors.border.subtle,
@@ -38,7 +49,6 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop:        spacing[3],
     paddingHorizontal: spacing[4],
     gap:               spacing[2],
   },

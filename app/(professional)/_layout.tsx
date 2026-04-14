@@ -30,6 +30,48 @@ export default function ProfessionalLayout() {
           headerShown:    false,
         }}
       />
+
+      {/* Settings — privacidad/legales y opciones de cuenta.
+         Todas las rutas comparten animación slide_from_right para sentirse
+         como un drill-down consistente dentro del perfil. Expo Router resuelve
+         automáticamente los archivos bajo settings/privacy/* y settings/account/*. */}
+      <Stack.Screen
+        name="profile/settings/privacy/index"
+        options={{ animation: "slide_from_right", gestureEnabled: true }}
+      />
+      <Stack.Screen
+        name="profile/settings/privacy/terms"
+        options={{ animation: "slide_from_right", gestureEnabled: true }}
+      />
+      <Stack.Screen
+        name="profile/settings/privacy/privacy"
+        options={{ animation: "slide_from_right", gestureEnabled: true }}
+      />
+      <Stack.Screen
+        name="profile/settings/privacy/legal"
+        options={{ animation: "slide_from_right", gestureEnabled: true }}
+      />
+
+      <Stack.Screen
+        name="profile/settings/account/index"
+        options={{ animation: "slide_from_right", gestureEnabled: true }}
+      />
+      <Stack.Screen
+        name="profile/settings/account/faq"
+        options={{ animation: "slide_from_right", gestureEnabled: true }}
+      />
+      <Stack.Screen
+        name="profile/settings/account/notifications"
+        options={{ animation: "slide_from_right", gestureEnabled: true }}
+      />
+      <Stack.Screen
+        name="profile/settings/account/contact"
+        options={{ animation: "slide_from_right", gestureEnabled: true }}
+      />
+      <Stack.Screen
+        name="profile/settings/account/delete-account"
+        options={{ animation: "slide_from_right", gestureEnabled: true }}
+      />
     </Stack>
   );
 }

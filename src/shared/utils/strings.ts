@@ -214,6 +214,100 @@ export const strings = {
     attendPresencial:          "Presencial",
   },
 
+  // SETTINGS — submenús compartidos entre (professional) y (client)
+  settings: {
+    privacyTitle:      "Privacidad y Legales",
+    privacySubtitle:   "Revisá las condiciones de uso de Tu Profesional.",
+    accountTitle:      "Más opciones",
+    accountSubtitle:   "Gestioná tu cuenta y cómo te contactamos.",
+    backToProfile:     "Volver al perfil",
+    lastUpdated:       "Última actualización: {date}",
+  },
+
+  // LEGAL — títulos y disclaimers (los textos largos viven en content/legal.ts)
+  legal: {
+    termsTitle:          "Términos y Condiciones",
+    privacyTitle:        "Política de Privacidad",
+    legalTitle:          "Avisos Legales",
+    draftDisclaimer:
+      "Este documento es una versión preliminar pendiente de revisión legal. " +
+      "Tu Profesional se reserva el derecho de modificar estos términos en cualquier momento.",
+  },
+
+  // FAQ
+  faq: {
+    title:    "Preguntas Frecuentes",
+    subtitle: "Las dudas más comunes sobre Tu Profesional.",
+    items: [
+      {
+        q: "¿Cómo funciona la suscripción?",
+        a: "La suscripción profesional cuesta USD 10 por mes y te da visibilidad completa en el buscador. Podés cancelar cuando quieras desde la sección de facturación.",
+      },
+      {
+        q: "¿Los pacientes me contactan directamente?",
+        a: "Sí. Cuando un paciente encuentra tu perfil, puede escribirte por WhatsApp o ver tus redes sociales. Tu Profesional no intermedia en la conversación.",
+      },
+      {
+        q: "¿Puedo editar mi perfil cuantas veces quiera?",
+        a: "Sí, sin límite. Los cambios se reflejan de inmediato en tu perfil público.",
+      },
+      {
+        q: "¿Cómo se valida mi matrícula?",
+        a: "Al completar tu perfil te pedimos el número de matrícula. Nuestro equipo lo verifica en un plazo de 24 a 48 horas hábiles.",
+      },
+      {
+        q: "¿Puedo eliminar mi cuenta?",
+        a: "Sí. Desde Más opciones → Eliminar cuenta podés borrar tu perfil y todos tus datos de forma permanente.",
+      },
+    ],
+  },
+
+  // NOTIFICATIONS
+  notifications: {
+    title:    "Notificaciones",
+    subtitle: "Elegí qué avisos querés recibir.",
+    platformUpdates:      "Novedades de la plataforma",
+    platformUpdatesDesc:  "Nuevas funciones, mejoras y anuncios importantes.",
+    billing:              "Facturación",
+    billingDesc:          "Cobros, renovaciones y cambios en tu suscripción.",
+    tips:                 "Consejos y buenas prácticas",
+    tipsDesc:             "Recomendaciones para potenciar tu perfil profesional.",
+    savedLabel:           "Preferencias guardadas",
+  },
+
+  // CONTACT
+  contact: {
+    title:            "Contactar al equipo",
+    subtitle:         "Estamos para ayudarte. Respondemos en menos de 24hs hábiles.",
+    whatsappLabel:    "Escribinos por WhatsApp",
+    whatsappNumber:   "+54 9 11 0000-0000",
+    emailLabel:       "Enviar un email",
+    emailAddress:     "hola@tuprofesional.app",
+    socialLabel:      "Seguinos en redes",
+  },
+
+  // DELETE ACCOUNT
+  deleteAccount: {
+    title:           "Eliminar cuenta",
+    subtitle:        "Esta acción es permanente y no se puede deshacer.",
+    warningTitle:    "Vas a perder:",
+    warningItems: [
+      "Tu perfil profesional y todos sus datos",
+      "Reseñas y calificaciones recibidas",
+      "Tu historial de suscripción",
+      "El acceso al email con el que te registraste",
+    ],
+    confirmCta:      "Eliminar mi cuenta",
+    cancelCta:       "Cancelar",
+    alertTitle:      "¿Seguro que querés eliminar tu cuenta?",
+    alertMessage:    "Vamos a borrar tu perfil y todos tus datos de forma permanente. No podrás recuperarlos.",
+    alertConfirm:    "Sí, eliminar",
+    successTitle:    "Cuenta eliminada",
+    successMessage:  "Lamentamos verte partir. Gracias por haber sido parte de Tu Profesional.",
+    errorTitle:      "No pudimos eliminar la cuenta",
+    errorMessage:    "Ocurrió un error. Probá de nuevo o escribinos al equipo de soporte.",
+  },
+
   // COMMON
   common: {
     loading: "Cargando...",

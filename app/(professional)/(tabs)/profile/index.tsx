@@ -35,6 +35,8 @@ export default function ProfessionalProfile() {
         variant="professional"
         onLogout={loading ? undefined : () => setShowLogoutAlert(true)}
         onEditProfile={() => router.push("/(professional)/profile/edit-profile")}
+        onPrivacy={() => router.push("/(professional)/profile/settings/privacy")}
+        onMoreOptions={() => router.push("/(professional)/profile/settings/account")}
       />
       <AppAlert
         visible={showLogoutAlert}
