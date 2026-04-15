@@ -26,6 +26,7 @@ import { PSYCHOLOGY_CATEGORIES } from "@/features/categories/types";
 import type { PsychologyCategoryId } from "@/features/categories/types";
 import { useNearbyProfessionals } from "@/features/home/hooks/useNearbyProfessionals";
 import type { Professional } from "@/features/professionals/types";
+import { useAuthStore } from "@/features/auth/store/authStore";
 import {
   colors,
   typography,
@@ -92,6 +93,8 @@ export default function HomeScreen() {
   const { professionals, isLoading, error, refetch } = useNearbyProfessionals();
   const [selectedCategory, setSelectedCategory] =
     useState<PsychologyCategoryId>("todos");
+  const email = useAuthStore((s) => s.session?.user.email ?? "");
+  const displayName = email.split("@")[0];
 
   const handleContact = (phone: string) => {
     Linking.openURL(buildWhatsAppUrl(phone));
@@ -127,7 +130,8 @@ export default function HomeScreen() {
       <ScreenHero
         variant="welcome"
         overline={strings.home.welcomeLabel}
-        userName="Nombre Usuario"
+        userName={displayName}
+        userNameSize="sm"
         withOverlap
       />
 

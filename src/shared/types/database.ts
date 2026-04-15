@@ -28,6 +28,7 @@ export type Database = {
           license: string | null
           phone: string | null
           photo_url: string | null
+          professional_area: string[]
           quote: string | null
           quote_author: string | null
           social_instagram: string | null
@@ -52,6 +53,7 @@ export type Database = {
           license?: string | null
           phone?: string | null
           photo_url?: string | null
+          professional_area?: string[]
           quote?: string | null
           quote_author?: string | null
           social_instagram?: string | null
@@ -76,6 +78,7 @@ export type Database = {
           license?: string | null
           phone?: string | null
           photo_url?: string | null
+          professional_area?: string[]
           quote?: string | null
           quote_author?: string | null
           social_instagram?: string | null

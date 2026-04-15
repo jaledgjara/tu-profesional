@@ -105,6 +105,7 @@ function mapRowToFormData(row: ProfessionalRow): Partial<ProfessionalFormData> {
     quoteAuthor:       row.quote_author ?? "",
     specialty:         row.specialty ?? "",
     subSpecialties:    row.sub_specialties ?? [],
+    professionalArea:  row.professional_area ?? [],
     attendsOnline:     row.attends_online ?? false,
     attendsPresencial: row.attends_presencial ?? false,
     socialWhatsapp:    row.social_whatsapp ?? "",

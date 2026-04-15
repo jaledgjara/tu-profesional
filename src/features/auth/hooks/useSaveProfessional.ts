@@ -25,6 +25,7 @@ export interface ProfessionalFormData {
   quoteAuthor:        string;
   specialty:          string;
   subSpecialties:     string[];
+  professionalArea:   string[];
   attendsOnline:      boolean;
   attendsPresencial:  boolean;
   socialWhatsapp:     string;
@@ -79,6 +80,7 @@ export function useSaveProfessional() {
           quote_author:       data.quoteAuthor.trim() || null,
           specialty:          data.specialty.trim() || null,
           sub_specialties:    data.subSpecialties,
+          professional_area:  data.professionalArea,
           attends_online:     data.attendsOnline,
           attends_presencial: data.attendsPresencial,
           photo_url:          photoUrl,

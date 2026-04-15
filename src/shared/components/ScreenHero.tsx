@@ -31,8 +31,11 @@ interface ScreenHeroProps {
   icon?:        IoniconName;
 
   // variant="welcome"
-  overline?:    string;
-  userName?:    string;
+  overline?:      string;
+  userName?:      string;
+  // 'md' (default) → h2 para nombres cortos (full_name del profesional)
+  // 'sm'           → h3 + 1 línea con ellipsis para strings largos (email del cliente)
+  userNameSize?:  'sm' | 'md';
 
   // Si la siguiente sección hace overlap (search bar, StatsRow) necesitamos
   // paddingBottom extra para que haya lugar para el marginTop negativo.
@@ -50,6 +53,7 @@ export const ScreenHero: React.FC<ScreenHeroProps> = ({
   icon,
   overline,
   userName,
+  userNameSize = 'md',
   withOverlap = false,
   children,
   style,
@@ -71,7 +75,12 @@ export const ScreenHero: React.FC<ScreenHeroProps> = ({
             <Text style={styles.overline}>{overline}</Text>
           ) : null}
           {userName ? (
-            <Text style={styles.userName}>{userName}</Text>
+            <Text
+              style={userNameSize === 'sm' ? styles.userNameSm : styles.userName}
+              numberOfLines={1}
+              ellipsizeMode="tail">
+              {userName}
+            </Text>
           ) : null}
         </>
       ) : (
@@ -131,6 +140,10 @@ const styles = StyleSheet.create({
   },
   userName: {
     ...typography.h2,
+    color: colors.text.inverse,
+  },
+  userNameSm: {
+    ...typography.h3,
     color: colors.text.inverse,
   },
 });

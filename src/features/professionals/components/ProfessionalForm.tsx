@@ -23,13 +23,22 @@ import * as ImagePicker from "expo-image-picker";
 
 import {
   AppHeader, AppAlert, IconButton, Avatar, TextInput,
-  Dropdown, Button, StickyBottomBar, ScreenHero,
+  Dropdown, MultiSelect, Button, StickyBottomBar, ScreenHero,
 } from "@/shared/components";
 import {
   colors, typography, spacing, layout, componentRadius,
 } from "@/shared/theme";
 import { strings } from "@/shared/utils/strings";
 import type { ProfessionalFormData } from "@/features/auth/hooks/useSaveProfessional";
+import { PSYCHOLOGY_AREAS } from "@/features/categories/professionalAreas";
+import type { MultiSelectGroup } from "@/shared/components";
+
+// Adaptador: el catálogo usa `id` (slug estable DB); MultiSelect usa `value`
+// para ser agnóstico del dominio. Mapeamos una vez por módulo.
+const PSYCHOLOGY_AREA_GROUPS: MultiSelectGroup[] = PSYCHOLOGY_AREAS.map((g) => ({
+  title:   g.title,
+  options: g.options.map((o) => ({ value: o.id, label: o.label, hint: o.hint })),
+}));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CATEGORÍA — cuando se sumen categorías, extender acá.
@@ -127,6 +136,7 @@ export function ProfessionalForm({
   const [specialty,        setSpecialty]        = useState<string>(initialValues?.specialty ?? "");
   const [subSpecialties,   setSubSpecialties]   = useState<string[]>(initialValues?.subSpecialties ?? []);
   const [subSpecInput,     setSubSpecInput]     = useState<string>("");
+  const [professionalArea, setProfessionalArea] = useState<string[]>(initialValues?.professionalArea ?? []);
   const [attendsOnline,    setAttendsOnline]    = useState<boolean>(initialValues?.attendsOnline ?? false);
   const [attendsPresencial,setAttendsPresencial]= useState<boolean>(initialValues?.attendsPresencial ?? false);
 
@@ -158,6 +168,7 @@ export function ProfessionalForm({
     setSocialTiktok(initialValues.socialTiktok ?? "");
     setSpecialty(initialValues.specialty ?? "");
     setSubSpecialties(initialValues.subSpecialties ?? []);
+    setProfessionalArea(initialValues.professionalArea ?? []);
     setAttendsOnline(initialValues.attendsOnline ?? false);
     setAttendsPresencial(initialValues.attendsPresencial ?? false);
     hydratedRef.current = true;
@@ -178,6 +189,7 @@ export function ProfessionalForm({
       quoteAuthor,
       specialty,
       subSpecialties,
+      professionalArea,
       attendsOnline,
       attendsPresencial,
       socialWhatsapp,
@@ -188,9 +200,9 @@ export function ProfessionalForm({
     });
   }, [
     photoUri, category, fullName, dni, phone, license, description,
-    quote, quoteAuthor, specialty, subSpecialties, attendsOnline,
-    attendsPresencial, socialWhatsapp, socialInstagram, socialLinkedin,
-    socialTwitter, socialTiktok, onSubmit,
+    quote, quoteAuthor, specialty, subSpecialties, professionalArea,
+    attendsOnline, attendsPresencial, socialWhatsapp, socialInstagram,
+    socialLinkedin, socialTwitter, socialTiktok, onSubmit,
   ]);
 
   // ── HANDLERS ──────────────────────────────────────────────────────────────
@@ -440,6 +452,28 @@ export function ProfessionalForm({
           <Text style={[styles.sectionLabel, styles.sectionLabelTop]}>
             {strings.proSetup.personalization}
           </Text>
+
+          {/* ÁREAS PROFESIONALES — multi-select con grupos.
+              Hoy sólo existe el catálogo de Psicología. Cuando se sumen otras
+              categorías, elegir el catálogo según `category` (ya hay UN solo
+              valor válido, no gateamos: así evitamos un flash donde el campo
+              no se ve mientras se hidratan los valores en modo edición). */}
+          <View style={styles.areaWrapper}>
+            <MultiSelect
+              label={strings.proSetup.professionalArea}
+              modalTitle={strings.proSetup.professionalArea}
+              groups={PSYCHOLOGY_AREA_GROUPS}
+              values={professionalArea}
+              onChange={setProfessionalArea}
+              placeholder={strings.proSetup.professionalAreaPlaceholder}
+              emptyLabel={strings.proSetup.professionalAreaEmpty}
+              doneLabel={strings.proSetup.professionalAreaDone}
+            />
+            <Text style={styles.helpText}>
+              {strings.proSetup.professionalAreaHelp}
+            </Text>
+          </View>
+
           <TextInput
             label={strings.proSetup.specialty}
             placeholder={strings.proSetup.specialtyPlaceholder}
@@ -593,6 +627,14 @@ const styles = StyleSheet.create({
     marginBottom:  spacing[2],
   },
 
+  areaWrapper: {
+    marginBottom: spacing[3],
+  },
+  helpText: {
+    ...typography.caption,
+    color:     colors.text.tertiary,
+    marginTop: spacing[1],
+  },
   subSpecWrapper: {
     marginBottom: spacing[3],
   },

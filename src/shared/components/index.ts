@@ -16,6 +16,8 @@ export { StickyBottomBar } from './StickyBottomBar';
 export { InfoSection }    from './InfoSection';
 export { StepIndicator }  from './StepIndicator';
 export { Dropdown }       from './Dropdown';
+export { MultiSelect }    from './MultiSelect';
+export type { MultiSelectGroup, MultiSelectOption } from './MultiSelect';
 export { AnimatedTabBar } from './AnimatedTabBar';
 export { Switch }         from './Switch';
 export { ScreenHero }     from './ScreenHero';
