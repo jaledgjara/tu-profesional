@@ -2,7 +2,7 @@
 // Capa: screen (silly view — solo renderiza, lógica en hook)
 // Cliente: usuario final
 
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -16,14 +16,11 @@ import { Ionicons } from "@expo/vector-icons";
 import {
   AppHeader,
   ScreenHero,
-  FilterChip,
   SectionRow,
   MiniLoader,
   Placeholder,
 } from "@/shared/components";
 import { ProfessionalCard } from "@/features/professionals/components/ProfessionalCard";
-import { PSYCHOLOGY_CATEGORIES } from "@/features/categories/types";
-import type { PsychologyCategoryId } from "@/features/categories/types";
 import { useNearbyProfessionals } from "@/features/home/hooks/useNearbyProfessionals";
 import type { ProfessionalListItem } from "@/features/professionals/types";
 import { useAuthStore } from "@/features/auth/store/authStore";
@@ -36,6 +33,7 @@ import {
   layout,
 } from "@/shared/theme";
 import { strings } from "@/shared/utils/strings";
+import { formatCategory } from "@/shared/utils/format";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SCREEN
@@ -44,16 +42,15 @@ import { strings } from "@/shared/utils/strings";
 export default function HomeScreen() {
   const router = useRouter();
   const { professionals, isLoading, error, refetch } = useNearbyProfessionals();
-  const [selectedCategory, setSelectedCategory] =
-    useState<PsychologyCategoryId>("todos");
   const email = useAuthStore((s) => s.session?.user.email ?? "");
   const displayName = email.split("@")[0];
 
   const renderProfessional = ({ item }: { item: ProfessionalListItem }) => (
+    <View style={styles.cardWrapper}>
     <ProfessionalCard
       id={item.id}
       name={item.fullName}
-      title={item.category ?? item.specialty}
+      title={formatCategory(item.category) || item.specialty}
       specialty={item.specialty}
       zone={item.city}
       imageUrl={item.photoUrl}
@@ -63,10 +60,11 @@ export default function HomeScreen() {
       onPress={() =>
         router.push({
           pathname: "/(client)/home/[id]",
-          params: { id: item.id },
+          params: { id: item.id, distanceM: String(item.distanceM) },
         })
       }
     />
+    </View>
   );
 
   const listHeader = (
@@ -99,23 +97,6 @@ export default function HomeScreen() {
           {strings.home.searchPlaceholder}
         </Text>
       </Pressable>
-
-      {/* ── CATEGORÍAS ─────────────────────────────────────────────────── */}
-      <FlatList
-        horizontal
-        data={PSYCHOLOGY_CATEGORIES}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <FilterChip
-            label={item.label}
-            isSelected={selectedCategory === item.id}
-            onPress={() => setSelectedCategory(item.id)}
-          />
-        )}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoriesContent}
-        style={styles.categoriesList}
-      />
 
       {/* ── SECCIÓN TÍTULO ─────────────────────────────────────────────── */}
       <SectionRow
@@ -231,15 +212,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Categories
-  categoriesList: {
-    marginTop: spacing[5],
-  },
-  categoriesContent: {
-    paddingHorizontal: spacing[4],
-    gap: spacing[2],
-  },
-
   // Section
   sectionRow: {
     marginTop: spacing[6],
@@ -251,13 +223,15 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: spacing[8],
   },
+  cardWrapper: {
+    paddingHorizontal: spacing[4],
+  },
   separator: {
     height: spacing[3],
   },
 
   // Placeholder / Loader wrappers
   placeholderWrapper: {
-    paddingHorizontal: spacing[4],
     paddingTop: spacing[6],
   },
   loaderWrapper: {

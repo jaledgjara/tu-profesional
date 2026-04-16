@@ -64,3 +64,17 @@ export function buildWhatsAppUrl(phone: string, message?: string): string {
   const encodedMessage = message ? encodeURIComponent(message) : '';
   return `whatsapp://send?phone=${number}${encodedMessage ? `&text=${encodedMessage}` : ''}`;
 }
+
+/**
+ * Convierte el identificador interno de categoría a label en español.
+ * "psychology" → "Psicología"
+ * Cuando se sumen categorías nuevas, mapearlas acá.
+ */
+const CATEGORY_LABELS: Record<string, string> = {
+  psychology: "Psicología",
+};
+
+export function formatCategory(category: string | null | undefined): string {
+  if (!category) return "";
+  return CATEGORY_LABELS[category] ?? category;
+}

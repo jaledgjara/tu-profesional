@@ -70,7 +70,7 @@ export default function CategoryProfesionalScreen() {
       onPress={() =>
         router.push({
           pathname: "/(client)/search/[id]",
-          params: { id: item.id },
+          params: { id: item.id, distanceM: String(item.distanceM) },
         })
       }
     />

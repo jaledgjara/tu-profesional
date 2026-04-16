@@ -29,7 +29,7 @@ import {
 } from "@/shared/components";
 import { StatsRow } from "@/features/professionals/components/StatsRow";
 import { ReviewCard } from "@/features/professionals/components/ReviewCard";
-import type { Professional } from "@/features/professionals/types";
+import type { ProfessionalDetail } from "@/features/professionals/types";
 import {
   colors,
   typography,
@@ -38,6 +38,7 @@ import {
   getShadow,
 } from "@/shared/theme";
 import { strings } from "@/shared/utils/strings";
+import { formatCategory } from "@/shared/utils/format";
 
 type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -78,23 +79,16 @@ export interface BriefcaseAddress {
 }
 
 export interface ProfessionalBriefcaseScreenProps {
-  professional: Professional;
-  description?: string;
-  quote?: string;
-  quoteAuthor?: string;
+  /** Datos completos del profesional (de fetchProfessionalDetail o construido localmente). */
+  detail: ProfessionalDetail;
+  /** Reseñas del profesional. Cuando exista el sistema de reviews, vendrán del hook. */
   reviews?: ReviewData[];
-  socialLinks?: SocialLinkData[];
-  /** Estado real del profesional (viene de DB). Si se omite, queda en `false`. */
-  attendsOnline?: boolean;
-  attendsPresencial?: boolean;
   /**
    * Si es `true`, los toggles de modalidad son informativos (no editables).
    * La edición va por el formulario de profesional, no por el briefcase.
    */
   modalityReadOnly?: boolean;
-  /** Dirección real del profesional. Si se omite, se usa `professional.zone`. */
-  address?: BriefcaseAddress | null;
-  /** Oculta la StatsRow (rating/reseñas) cuando no hay datos. */
+  /** Oculta la StatsRow (rating/reseñas) cuando no hay datos reales. */
   hideStats?: boolean;
   /** Oculta la pill de distancia (útil en la vista propia del profesional). */
   hideDistance?: boolean;
@@ -177,21 +171,52 @@ const SOCIAL_CONFIG: Record<SocialLinkType, SocialConfigEntry> = {
   },
 };
 
+/**
+ * Construye la lista de redes sociales desde los campos social_* del detail.
+ * Solo incluye los que tienen valor (null o vacío se omiten).
+ * WhatsApp primero (el más accionable).
+ */
+function buildSocialLinksFromDetail(d: ProfessionalDetail): SocialLinkData[] {
+  const links: SocialLinkData[] = [];
+
+  const whatsapp  = d.socialWhatsapp?.trim();
+  const instagram = d.socialInstagram?.trim();
+  const linkedin  = d.socialLinkedin?.trim();
+  const twitter   = d.socialTwitter?.trim();
+  const tiktok    = d.socialTiktok?.trim();
+
+  if (whatsapp) {
+    const phone = whatsapp.replace(/\D/g, "");
+    links.push({ type: "whatsapp", url: `whatsapp://send?phone=${phone}` });
+  }
+  if (instagram) {
+    const handle = instagram.replace(/^@/, "");
+    links.push({ type: "instagram", url: `https://instagram.com/${handle}` });
+  }
+  if (linkedin) {
+    const url = linkedin.startsWith("http") ? linkedin : `https://${linkedin}`;
+    links.push({ type: "linkedin", url });
+  }
+  if (twitter) {
+    const handle = twitter.replace(/^@/, "");
+    links.push({ type: "twitter", url: `https://twitter.com/${handle}` });
+  }
+  if (tiktok) {
+    const handle = tiktok.replace(/^@/, "");
+    links.push({ type: "tiktok", url: `https://www.tiktok.com/@${handle}` });
+  }
+
+  return links;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function ProfessionalBriefcaseScreen({
-  professional,
-  description,
-  quote,
-  quoteAuthor,
+  detail,
   reviews = [],
-  socialLinks = [],
-  attendsOnline,
-  attendsPresencial,
   modalityReadOnly = false,
-  address,
   hideStats = false,
   hideDistance = false,
   showBackButton = false,
@@ -200,35 +225,42 @@ export function ProfessionalBriefcaseScreen({
   onEdit,
   onSeeAllReviews,
 }: ProfessionalBriefcaseScreenProps) {
-  const distanceKm = (professional.distanceM / 1000).toFixed(1);
+  const distanceKm = detail.distanceM
+    ? (detail.distanceM / 1000).toFixed(1)
+    : null;
 
   // Los switches reflejan los flags del profesional (attends_online / attends_presencial).
   // Por ahora son visuales: la persistencia se hace desde el formulario de edición.
-  const [worksOnline, setWorksOnline] = useState<boolean>(attendsOnline ?? false);
-  const [worksInPerson, setWorksInPerson] = useState<boolean>(attendsPresencial ?? false);
+  const [worksOnline, setWorksOnline] = useState<boolean>(detail.attendsOnline);
+  const [worksInPerson, setWorksInPerson] = useState<boolean>(detail.attendsPresencial);
 
   useEffect(() => {
-    setWorksOnline(attendsOnline ?? false);
-  }, [attendsOnline]);
+    setWorksOnline(detail.attendsOnline);
+  }, [detail.attendsOnline]);
 
   useEffect(() => {
-    setWorksInPerson(attendsPresencial ?? false);
-  }, [attendsPresencial]);
+    setWorksInPerson(detail.attendsPresencial);
+  }, [detail.attendsPresencial]);
 
-  const stats = hideStats
-    ? []
-    : [
-        {
-          value: `★ ${professional.rating.toFixed(1)}`,
-          label: strings.publicProfile.rating,
-        },
-        {
-          value: professional.reviewCount,
-          label: strings.publicProfile.reviews_label,
-        },
-      ];
+  // Stats — ocultas hasta que exista el sistema de reseñas
+  const stats = hideStats ? [] : [];
 
-  const addressLine = buildAddressLine(address) || professional.zone;
+  // Dirección para el mapa
+  const address: BriefcaseAddress | null = detail.address
+    ? {
+        street:   detail.address.street,
+        number:   detail.address.number,
+        city:     detail.address.city,
+        province: detail.address.province,
+        lat:      detail.address.lat,
+        lng:      detail.address.lng,
+      }
+    : null;
+
+  const addressLine = buildAddressLine(address) || detail.address?.city || "";
+
+  // Redes sociales — construidas desde los campos social_* del detail
+  const socialLinks = buildSocialLinksFromDetail(detail);
 
   const handleSocialPress = (link: SocialLinkData) => {
     Alert.alert(
@@ -284,18 +316,18 @@ export function ProfessionalBriefcaseScreen({
       {/* ── HERO (azul) — avatar centrado + nombre + especialidad ──── */}
       <View style={styles.hero}>
         <Avatar
-          imageUrl={professional.imageUrl}
-          name={professional.name}
+          imageUrl={detail.photoUrl}
+          name={detail.fullName}
           size="xxl"
           rounded
           showVerifiedBadge
         />
-        <Text style={styles.heroName}>{professional.name}</Text>
-        {professional.title ? (
-          <Text style={styles.heroTitle}>{professional.title}</Text>
+        <Text style={styles.heroName}>{detail.fullName}</Text>
+        {detail.category ? (
+          <Text style={styles.heroTitle}>{formatCategory(detail.category)}</Text>
         ) : null}
-        {professional.specialty ? (
-          <Text style={styles.heroSpecialty}>{professional.specialty}</Text>
+        {detail.specialty ? (
+          <Text style={styles.heroSpecialty}>{detail.specialty}</Text>
         ) : null}
       </View>
 
@@ -383,7 +415,7 @@ export function ProfessionalBriefcaseScreen({
                   {addressLine}
                 </Text>
               </View>
-              {!hideDistance && (
+              {!hideDistance && distanceKm && (
                 <View style={styles.mapDistancePill}>
                   <Text style={styles.mapDistanceText}>{distanceKm} km</Text>
                 </View>
@@ -393,28 +425,28 @@ export function ProfessionalBriefcaseScreen({
         </InfoSection>
 
         {/* SOBRE MÍ */}
-        {(quote || description) && (
+        {(detail.quote || detail.description) && (
           <InfoSection title={strings.publicProfile.aboutMe}>
-            {quote ? (
+            {detail.quote ? (
               <>
-                <Text style={styles.quoteText}>"{quote}"</Text>
-                {quoteAuthor ? (
-                  <Text style={styles.quoteAuthor}>— {quoteAuthor}</Text>
+                <Text style={styles.quoteText}>"{detail.quote}"</Text>
+                {detail.quoteAuthor ? (
+                  <Text style={styles.quoteAuthor}>— {detail.quoteAuthor}</Text>
                 ) : null}
-                {description ? <View style={styles.quoteDivider} /> : null}
+                {detail.description ? <View style={styles.quoteDivider} /> : null}
               </>
             ) : null}
-            {description ? (
-              <Text style={styles.descriptionText}>{description}</Text>
+            {detail.description ? (
+              <Text style={styles.descriptionText}>{detail.description}</Text>
             ) : null}
           </InfoSection>
         )}
 
         {/* ESPECIALIDADES */}
-        {professional.tags.length > 0 && (
+        {detail.subSpecialties.length > 0 && (
           <InfoSection title={strings.publicProfile.specialties}>
             <View style={styles.tagsRow}>
-              {professional.tags.map((tag) => (
+              {detail.subSpecialties.map((tag) => (
                 <Badge key={tag} label={tag} variant="tag" />
               ))}
             </View>

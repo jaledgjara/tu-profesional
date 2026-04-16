@@ -529,6 +529,21 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_professional_location: {
+        Args: { p_professional_id: string }
+        Returns: {
+          apartment: string
+          city: string
+          country: string
+          floor: string
+          lat: number
+          lng: number
+          number: string
+          postal_code: string
+          province: string
+          street: string
+        }[]
+      }
       gettransactionid: { Args: never; Returns: unknown }
       immutable_unaccent: { Args: { "": string }; Returns: string }
       longtransactionsenabled: { Args: never; Returns: boolean }

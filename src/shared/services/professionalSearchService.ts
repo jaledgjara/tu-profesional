@@ -13,7 +13,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabase } from "@/shared/services/supabase";
-import type { ProfessionalListItem } from "@/features/professionals/types";
+import type {
+  ProfessionalListItem,
+  ProfessionalDetail,
+  ProfessionalAddress,
+} from "@/features/professionals/types";
 import type { Database } from "@/shared/types/database";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -199,4 +203,85 @@ export async function fetchAreaCounts(
     counts[row.area_slug] = row.n;
   }
   return counts;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DETALLE — fetchProfessionalDetail
+// Combina query a tabla `professionals` + RPC `get_professional_location`.
+// Retorna ProfessionalDetail con todos los campos para la pantalla de perfil.
+// ─────────────────────────────────────────────────────────────────────────────
+
+type ProfessionalRow = Database["public"]["Tables"]["professionals"]["Row"];
+type LocationRow = DbFunctions["get_professional_location"]["Returns"][number];
+
+function mapLocationRow(row: LocationRow): ProfessionalAddress {
+  return {
+    street:     row.street,
+    number:     row.number,
+    floor:      row.floor,
+    apartment:  row.apartment,
+    postalCode: row.postal_code,
+    city:       row.city,
+    province:   row.province,
+    country:    row.country,
+    lat:        row.lat,
+    lng:        row.lng,
+  };
+}
+
+function mapProfessionalRow(
+  row: ProfessionalRow,
+  address: ProfessionalAddress | null,
+  distanceM?: number,
+): ProfessionalDetail {
+  return {
+    id:                row.id,
+    fullName:          row.full_name ?? "",
+    category:          row.category,
+    specialty:         row.specialty,
+    subSpecialties:    row.sub_specialties ?? [],
+    professionalArea:  row.professional_area ?? [],
+    description:       row.description,
+    quote:             row.quote,
+    quoteAuthor:       row.quote_author,
+    attendsOnline:     row.attends_online,
+    attendsPresencial: row.attends_presencial,
+    photoUrl:          row.photo_url,
+    phone:             row.phone,
+    socialWhatsapp:    row.social_whatsapp,
+    socialInstagram:   row.social_instagram,
+    socialLinkedin:    row.social_linkedin,
+    socialTwitter:     row.social_twitter,
+    socialTiktok:      row.social_tiktok,
+    address,
+    distanceM,
+  };
+}
+
+export async function fetchProfessionalDetail(
+  professionalId: string,
+  distanceM?: number,
+  client: TypedClient = supabase,
+): Promise<ProfessionalDetail> {
+  // Dos queries en paralelo: perfil + ubicación
+  const [profileResult, locationResult] = await Promise.all([
+    client
+      .from("professionals")
+      .select("*")
+      .eq("id", professionalId)
+      .single(),
+    client.rpc("get_professional_location", {
+      p_professional_id: professionalId,
+    }),
+  ]);
+
+  if (profileResult.error) throw profileResult.error;
+
+  // La ubicación puede no existir (profesional nuevo sin dirección cargada)
+  const locationRows = locationResult.data ?? [];
+  const address = locationRows.length > 0
+    ? mapLocationRow(locationRows[0])
+    : null;
+
+  return mapProfessionalRow(profileResult.data, address, distanceM);
 }

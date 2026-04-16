@@ -47,6 +47,7 @@ import {
   layout,
 } from "@/shared/theme";
 import { strings } from "@/shared/utils/strings";
+import { formatCategory } from "@/shared/utils/format";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SCREEN
@@ -99,7 +100,7 @@ export default function SearchScreen() {
     <ProfessionalCard
       id={item.id}
       name={item.fullName}
-      title={item.category ?? item.specialty}
+      title={formatCategory(item.category) || item.specialty}
       specialty={item.specialty}
       zone={item.city}
       imageUrl={item.photoUrl}
@@ -109,7 +110,7 @@ export default function SearchScreen() {
       onPress={() =>
         router.push({
           pathname: "/(client)/search/[id]",
-          params: { id: item.id },
+          params: { id: item.id, distanceM: String(item.distanceM) },
         })
       }
     />
