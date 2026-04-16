@@ -98,7 +98,7 @@ beforeAll(async () => {
     proBSupa,
   );
 
-  await adminClient
+  const { error: upsertBErr } = await adminClient
     .from("professionals")
     .upsert({
       id:                proBUser.id,
@@ -109,14 +109,9 @@ beforeAll(async () => {
       professional_area: ["psicoanalisis"],
       description:       "Profesional B de test",
       is_active:         true,
+      social_whatsapp:   "5492614001234",
     });
-
-  // UPDATE explicito para social_whatsapp — upsert puede no setear columnas
-  // nullable si la fila ya existia con valores por defecto.
-  await adminClient
-    .from("professionals")
-    .update({ social_whatsapp: "5492614001234" })
-    .eq("id", proBUser.id);
+  if (upsertBErr) throw new Error(`upsert pro B: ${upsertBErr.message}`);
 
   await adminClient
     .from("user_locations")
@@ -279,6 +274,16 @@ describe("fetchProfessionalDetail", () => {
   });
 
   it("incluye redes sociales", async () => {
+    // Verificar que el dato existe en la DB antes del fetch
+    const { data: rawRow } = await adminClient
+      .from("professionals")
+      .select("social_whatsapp")
+      .eq("id", proBUser.id)
+      .single();
+
+    expect(rawRow?.social_whatsapp).toBe("5492614001234");
+
+    // Ahora verificar que el service lo mapea correctamente
     const detail = await fetchProfessionalDetail(proBUser.id, undefined, clientSupa);
 
     expect(detail.socialWhatsapp).toBe("5492614001234");
