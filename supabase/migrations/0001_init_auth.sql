@@ -29,6 +29,7 @@ $$;
 create table if not exists public.profiles (
   id          uuid primary key references auth.users(id) on delete cascade,
   role        text not null check (role in ('client', 'professional')),
+  email       text,
   full_name   text,
   phone       text,
   created_at  timestamptz not null default now(),
@@ -45,6 +46,8 @@ create trigger profiles_set_updated_at
 -- =============================================================================
 create table if not exists public.professionals (
   id                  uuid primary key references public.profiles(id) on delete cascade,
+  full_name           text,
+  phone               text,
   category            text not null default 'psychology',
   dni                 text,
   license             text,
@@ -56,6 +59,11 @@ create table if not exists public.professionals (
   attends_online      boolean not null default false,
   attends_presencial  boolean not null default false,
   photo_url           text,
+  social_whatsapp     text,
+  social_instagram    text,
+  social_linkedin     text,
+  social_twitter      text,
+  social_tiktok       text,
   is_active           boolean not null default true,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now()
