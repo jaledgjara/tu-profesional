@@ -285,3 +285,41 @@ export async function fetchProfessionalDetail(
 
   return mapProfessionalRow(profileResult.data, address, distanceM);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROFILE VIEWS — registro de visitas + stats para el dashboard
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Registra una visita al perfil de un profesional.
+ * Fire & forget — no bloquea la UI ni tira error al usuario.
+ * Si falla (red, RLS, etc.), la visita simplemente no se cuenta.
+ */
+export async function recordProfileView(
+  professionalId: string,
+  client: TypedClient = supabase,
+): Promise<void> {
+  const { data: { session } } = await client.auth.getSession();
+  await client.from("profile_views").insert({
+    professional_id: professionalId,
+    viewer_id:       session?.user.id ?? null,
+  });
+}
+
+/**
+ * Obtiene las visitas del profesional logueado (este mes y el anterior).
+ * Security invoker: la RPC filtra por auth.uid() automáticamente.
+ */
+export async function fetchMyProfileViews(
+  client: TypedClient = supabase,
+): Promise<{ thisMonth: number; lastMonth: number }> {
+  const { data, error } = await client.rpc("get_my_profile_views");
+
+  if (error) throw error;
+
+  const row = (data ?? [])[0];
+  return {
+    thisMonth: row?.this_month ?? 0,
+    lastMonth: row?.last_month ?? 0,
+  };
+}

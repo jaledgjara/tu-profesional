@@ -8,7 +8,10 @@
 
 import { useState, useEffect } from "react";
 
-import { fetchProfessionalDetail } from "@/shared/services/professionalSearchService";
+import {
+  fetchProfessionalDetail,
+  recordProfileView,
+} from "@/shared/services/professionalSearchService";
 import type { ProfessionalDetail } from "@/features/professionals/types";
 import { strings } from "@/shared/utils/strings";
 
@@ -41,6 +44,9 @@ export function useProfessionalDetail(
       .then((data) => {
         if (cancelled) return;
         setDetail(data);
+        // Fire & forget — registrar la visita sin bloquear la UI.
+        // Si falla, el usuario no se entera (es analytics, no funcionalidad).
+        recordProfileView(id).catch(() => {});
       })
       .catch((err) => {
         if (cancelled) return;
