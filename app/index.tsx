@@ -1,51 +1,26 @@
-// Auth guard del root. Decide a dónde mandar al user en función del status
-// del authStore. El status se calcula en authStore.refresh() llamando a
-// getSession + getProfile + hasUserLocation.
+// Auth guard del root — centraliza TODA la lógica de routing.
 //
-// Patrón de navegación: las screens de auth hacen `router.replace('/')` al
-// terminar su paso — este guard recalcula el destino en función del nuevo
-// status. Esto centraliza TODA la lógica de routing en un solo lugar.
-// Excepción: ProfessionalFormScreen → ProfessionalLocationFormScreen
-// (ver comentario inline).
+// Patrón: las screens de auth hacen `router.replace('/')` al terminar su paso.
+// Este guard recalcula el destino via resolveRoute() y redirige.
+//
+// Las rutas se resuelven en routeResolver.ts — un solo lugar para todos los
+// roles (client, professional, y futuros admin/web).
 
 import { Redirect } from "expo-router";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { MiniLoader } from "@/shared/components";
+import { resolveRoute } from "@/shared/utils/routeResolver";
 
 export default function Index() {
-  const status  = useAuthStore((s) => s.status);
-  const profile = useAuthStore((s) => s.profile);
+  const status = useAuthStore((s) => s.status);
+  const role   = useAuthStore((s) => s.profile?.role ?? null);
 
-  console.log("[guard] Evaluando redirect — status:", status, "| rol:", profile?.role ?? "—");
+  const href = resolveRoute(status, role);
 
-  if (status === "loading") {
-    return <MiniLoader />;
-  }
+  console.log("[guard] status:", status, "| rol:", role ?? "—", "| →", href ?? "loading");
 
-  if (status === "unauthenticated") {
-    return <Redirect href="/(auth)/WelcomeScreen" />;
-  }
+  if (!href) return <MiniLoader />;
 
-  if (status === "needs-role") {
-    return <Redirect href="/(auth)/UserTypeScreen" />;
-  }
-
-  if (status === "needs-location") {
-    if (profile?.role === "professional") {
-      return <Redirect href="/(auth)/ProfessionalFormScreen" />;
-    }
-    return <Redirect href="/(auth)/ClientLocationFormScreen" />;
-  }
-
-  // authenticated
-  return (
-    <Redirect
-      href={
-        profile?.role === "professional"
-          ? "/(professional)/home"
-          : "/(client)/home"
-      }
-    />
-  );
+  return <Redirect href={href} />;
 }

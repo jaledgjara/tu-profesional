@@ -1,27 +1,21 @@
 // Layout del grupo de auth con REVERSE GUARD.
 //
-// Defiende contra navegaciones espurias a Welcome/OTP/etc. cuando el usuario
-// ya está autenticado (típicamente pasa tras Fast Refresh o errores transitorios
-// de red que disparaban un "unauthenticated" temporal).
-//
-// Excepción: si el status es `needs-role` o `needs-location`, las screens de
-// este grupo siguen siendo el destino correcto (UserTypeScreen / ClientLocationFormScreen
-// / ProfessionalFormScreen), así que no redirigimos en esos casos.
+// Si el usuario ya está autenticado, lo redirige a su home (via getHomeRoute).
+// Si está en needs-role/needs-location, las screens de este grupo son el
+// destino correcto — no redirigimos.
 
 import { Redirect, Stack } from "expo-router";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { getHomeRoute } from "@/shared/utils/routeResolver";
 
 export default function AuthLayout() {
-  const status  = useAuthStore((s) => s.status);
-  const profile = useAuthStore((s) => s.profile);
+  const status = useAuthStore((s) => s.status);
+  const role   = useAuthStore((s) => s.profile?.role ?? null);
 
   if (status === "authenticated") {
-    const href =
-      profile?.role === "professional"
-        ? "/(professional)/home"
-        : "/(client)/home";
-    console.log("[authLayout] reverse guard — user autenticado, redirigiendo a", href);
+    const href = getHomeRoute(role);
+    console.log("[authLayout] reverse guard → redirigiendo a", href);
     return <Redirect href={href} />;
   }
 

@@ -3,6 +3,7 @@
 
 import { useState, useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 
 import { ProfileScreen } from "@/features/profile/screens/ProfileScreen";
 import { AppAlert } from "@/shared/components";
@@ -34,6 +35,8 @@ export default function ClientProfile() {
     <>
       <ProfileScreen
         variant="client"
+        onPrivacy={() => router.push("/(client)/profile/settings/privacy")}
+        onMoreOptions={() => router.push("/(client)/profile/settings/account")}
         onLogout={loading ? undefined : () => setShowLogoutAlert(true)}
       />
       <AppAlert
