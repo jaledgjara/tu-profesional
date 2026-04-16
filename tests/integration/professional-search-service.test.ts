@@ -109,8 +109,14 @@ beforeAll(async () => {
       professional_area: ["psicoanalisis"],
       description:       "Profesional B de test",
       is_active:         true,
-      social_whatsapp:   "5492614001234",
     });
+
+  // UPDATE explicito para social_whatsapp — upsert puede no setear columnas
+  // nullable si la fila ya existia con valores por defecto.
+  await adminClient
+    .from("professionals")
+    .update({ social_whatsapp: "5492614001234" })
+    .eq("id", proBUser.id);
 
   await adminClient
     .from("user_locations")
