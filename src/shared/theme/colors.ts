@@ -4,7 +4,7 @@
 // Toda referencia de color en componentes va a través de `colors.*`
 // ─────────────────────────────────────────────────────────────────────────────
 
-const palette = {
+export const palette = {
   // Primary Blue — identidad de marca
   blue50:  '#EEF4FD',
   blue100: '#DDEAFC',

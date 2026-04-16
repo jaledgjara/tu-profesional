@@ -31,6 +31,7 @@ export type Database = {
           professional_area: string[]
           quote: string | null
           quote_author: string | null
+          search_tsv: unknown
           social_instagram: string | null
           social_linkedin: string | null
           social_tiktok: string | null
@@ -56,6 +57,7 @@ export type Database = {
           professional_area?: string[]
           quote?: string | null
           quote_author?: string | null
+          search_tsv?: unknown
           social_instagram?: string | null
           social_linkedin?: string | null
           social_tiktok?: string | null
@@ -81,6 +83,7 @@ export type Database = {
           professional_area?: string[]
           quote?: string | null
           quote_author?: string | null
+          search_tsv?: unknown
           social_instagram?: string | null
           social_linkedin?: string | null
           social_tiktok?: string | null
@@ -371,6 +374,13 @@ export type Database = {
             }
             Returns: string
           }
+      count_professionals_by_area: {
+        Args: never
+        Returns: {
+          area_slug: string
+          n: number
+        }[]
+      }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
         | {
@@ -502,19 +512,46 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_my_role: { Args: never; Returns: string }
+      get_my_user_location: {
+        Args: never
+        Returns: {
+          apartment: string
+          city: string
+          country: string
+          floor: string
+          lat: number
+          lng: number
+          number: string
+          postal_code: string
+          province: string
+          street: string
+          user_id: string
+        }[]
+      }
       gettransactionid: { Args: never; Returns: unknown }
+      immutable_unaccent: { Args: { "": string }; Returns: string }
       longtransactionsenabled: { Args: never; Returns: boolean }
       nearby_professionals: {
-        Args: { radius_m?: number; user_lat: number; user_lng: number }
+        Args: {
+          p_cursor_distance_m?: number
+          p_cursor_id?: string
+          p_limit?: number
+          p_radius_m?: number
+          p_user_lat: number
+          p_user_lng: number
+        }
         Returns: {
           attends_online: boolean
           attends_presencial: boolean
           category: string
           city: string
           description: string
+          distance_m: number
           full_name: string
           id: string
           photo_url: string
+          professional_area: string[]
           quote: string
           quote_author: string
           specialty: string
@@ -561,6 +598,50 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      professionals_by_area: {
+        Args: {
+          p_area_slug: string
+          p_cursor_distance_m?: number
+          p_cursor_id?: string
+          p_limit?: number
+          p_user_lat: number
+          p_user_lng: number
+        }
+        Returns: {
+          city: string
+          description: string
+          distance_m: number
+          full_name: string
+          id: string
+          photo_url: string
+          professional_area: string[]
+          specialty: string
+          sub_specialties: string[]
+        }[]
+      }
+      search_professionals: {
+        Args: {
+          p_area_filter?: string[]
+          p_cursor_distance_m?: number
+          p_cursor_id?: string
+          p_limit?: number
+          p_query: string
+          p_user_lat: number
+          p_user_lng: number
+        }
+        Returns: {
+          category: string
+          city: string
+          description: string
+          distance_m: number
+          full_name: string
+          id: string
+          photo_url: string
+          professional_area: string[]
+          specialty: string
+          sub_specialties: string[]
+        }[]
+      }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: unknown

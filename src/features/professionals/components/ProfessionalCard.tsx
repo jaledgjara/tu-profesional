@@ -32,7 +32,7 @@ interface ProfessionalCardProps {
 
   // Handlers
   onPress:     () => void;
-  onContact:   () => void;
+  onContact?:  () => void;
   onFavorite?: () => void;
 
   style?: ViewStyle;
@@ -125,15 +125,17 @@ const CardVertical: React.FC<InnerCardProps> = ({
       </View>
     )}
 
-    {/* CTA */}
-    <Button
-      label="CONTACTAR"
-      variant="primary"
-      size="md"
-      fullWidth
-      uppercase
-      onPress={onContact}
-    />
+    {/* CTA — solo cuando hay handler de contacto (no disponible en listas) */}
+    {onContact && (
+      <Button
+        label="CONTACTAR"
+        variant="primary"
+        size="md"
+        fullWidth
+        uppercase
+        onPress={onContact}
+      />
+    )}
   </Pressable>
 );
 
@@ -194,29 +196,33 @@ const CardHorizontal: React.FC<InnerCardProps> = ({
       </View>
     )}
 
-    {/* CTA ROW: botón + favorito */}
-    <View style={cardStyles.ctaRow}>
-      <View style={{ flex: 1 }}>
-        <Button
-          label="Contactar"
-          variant="primary"
-          size="md"
-          fullWidth
-          onPress={onContact}
-        />
+    {/* CTA ROW: botón + favorito — solo si hay handler de contacto o favorito */}
+    {(onContact || onFavorite) && (
+      <View style={cardStyles.ctaRow}>
+        {onContact && (
+          <View style={{ flex: 1 }}>
+            <Button
+              label="Contactar"
+              variant="primary"
+              size="md"
+              fullWidth
+              onPress={onContact}
+            />
+          </View>
+        )}
+        {onFavorite && (
+          <Pressable
+            onPress={onFavorite}
+            style={cardStyles.favoriteBtn}
+            hitSlop={8}
+          >
+            <Text style={{ fontSize: 22 }}>
+              {isFavorited ? '❤️' : '🤍'}
+            </Text>
+          </Pressable>
+        )}
       </View>
-      {onFavorite && (
-        <Pressable
-          onPress={onFavorite}
-          style={cardStyles.favoriteBtn}
-          hitSlop={8}
-        >
-          <Text style={{ fontSize: 22 }}>
-            {isFavorited ? '❤️' : '🤍'}
-          </Text>
-        </Pressable>
-      )}
-    </View>
+    )}
   </Pressable>
 );
 

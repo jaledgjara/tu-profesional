@@ -79,6 +79,9 @@ export const strings = {
   // SEARCH
   search: {
     title: "Buscar",
+    noResultsProfessionals: "No encontramos profesionales para tu búsqueda.",
+    noResultsHint: "Probá con otro nombre, especialidad o área.",
+    loadingMore: "Cargando más...",
   },
 
   // PROFESSIONAL CARD

@@ -193,10 +193,7 @@ export async function getMyUserLocation(
   client: SupabaseClient = supabase,
 ): Promise<UserLocationAddress | null> {
   console.log("[locationService::getMyUserLocation] Llamando RPC get_my_user_location — userId:", userId);
-  const { data, error } = await client.rpc(
-    // Cast necesario hasta regenerar tipos con `supabase gen types typescript`.
-    "get_my_user_location" as never,
-  );
+  const { data, error } = await client.rpc("get_my_user_location");
   if (error) {
     console.error("[locationService::getMyUserLocation] Error en RPC →", error.message);
     throw error;

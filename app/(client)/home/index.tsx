@@ -9,7 +9,6 @@ import {
   Pressable,
   FlatList,
   StyleSheet,
-  Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,13 +18,14 @@ import {
   ScreenHero,
   FilterChip,
   SectionRow,
+  MiniLoader,
+  Placeholder,
 } from "@/shared/components";
 import { ProfessionalCard } from "@/features/professionals/components/ProfessionalCard";
-import { SkeletonCard } from "@/features/professionals/components/SkeletonCard";
 import { PSYCHOLOGY_CATEGORIES } from "@/features/categories/types";
 import type { PsychologyCategoryId } from "@/features/categories/types";
 import { useNearbyProfessionals } from "@/features/home/hooks/useNearbyProfessionals";
-import type { Professional } from "@/features/professionals/types";
+import type { ProfessionalListItem } from "@/features/professionals/types";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import {
   colors,
@@ -36,53 +36,6 @@ import {
   layout,
 } from "@/shared/theme";
 import { strings } from "@/shared/utils/strings";
-import { buildWhatsAppUrl } from "@/shared/utils/format";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SUB-COMPONENTES PRIVADOS
-// ─────────────────────────────────────────────────────────────────────────────
-
-function EmptyState({ onRetry }: { onRetry: () => void }) {
-  return (
-    <View style={emptyStyles.container}>
-      <Ionicons name="search-outline" size={48} color={colors.icon.inactive} />
-      <Text style={emptyStyles.title}>{strings.home.emptyTitle}</Text>
-      <Text style={emptyStyles.desc}>{strings.home.emptyDesc}</Text>
-      <Pressable onPress={onRetry} style={emptyStyles.retryBtn}>
-        <Text style={emptyStyles.retryLabel}>{strings.home.retry}</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-function ErrorState({ onRetry }: { onRetry: () => void }) {
-  return (
-    <View style={emptyStyles.container}>
-      <Ionicons
-        name="cloud-offline-outline"
-        size={48}
-        color={colors.status.error}
-      />
-      <Text style={emptyStyles.title}>{strings.home.errorTitle}</Text>
-      <Text style={emptyStyles.desc}>{strings.home.errorDesc}</Text>
-      <Pressable onPress={onRetry} style={emptyStyles.retryBtn}>
-        <Text style={emptyStyles.retryLabel}>{strings.home.retry}</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-const SKELETON_KEYS = [1, 2, 3] as const;
-
-function SkeletonList() {
-  return (
-    <View style={skeletonStyles.container}>
-      {SKELETON_KEYS.map((k) => (
-        <SkeletonCard key={k} />
-      ))}
-    </View>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SCREEN
@@ -96,23 +49,16 @@ export default function HomeScreen() {
   const email = useAuthStore((s) => s.session?.user.email ?? "");
   const displayName = email.split("@")[0];
 
-  const handleContact = (phone: string) => {
-    Linking.openURL(buildWhatsAppUrl(phone));
-  };
-
-  const renderProfessional = ({ item }: { item: Professional }) => (
+  const renderProfessional = ({ item }: { item: ProfessionalListItem }) => (
     <ProfessionalCard
       id={item.id}
-      name={item.name}
-      title={item.title}
+      name={item.fullName}
+      title={item.category ?? item.specialty}
       specialty={item.specialty}
-      zone={item.zone}
-      imageUrl={item.imageUrl}
-      tags={item.tags}
-      rating={item.rating}
-      reviewCount={item.reviewCount}
+      zone={item.city}
+      imageUrl={item.photoUrl}
+      tags={item.subSpecialties.slice(0, 3)}
       distanceM={item.distanceM}
-      isAvailable={item.isAvailable}
       layout="vertical"
       onPress={() =>
         router.push({
@@ -120,7 +66,6 @@ export default function HomeScreen() {
           params: { id: item.id },
         })
       }
-      onContact={() => handleContact(item.phone)}
     />
   );
 
@@ -182,7 +127,7 @@ export default function HomeScreen() {
     </>
   );
 
-  // Estado error
+  // ── Estado error ────────────────────────────────────────────────────────
   if (error) {
     return (
       <View style={styles.screen}>
@@ -191,7 +136,17 @@ export default function HomeScreen() {
           data={[]}
           renderItem={null}
           ListHeaderComponent={listHeader}
-          ListEmptyComponent={<ErrorState onRetry={refetch} />}
+          ListEmptyComponent={
+            <View style={styles.placeholderWrapper}>
+              <Placeholder
+                icon={<Ionicons name="cloud-offline-outline" size={32} color={colors.status.error} />}
+                title={strings.home.errorTitle}
+                description={strings.home.errorDesc}
+                actionLabel={strings.home.retry}
+                onAction={refetch}
+              />
+            </View>
+          }
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
@@ -199,16 +154,46 @@ export default function HomeScreen() {
     );
   }
 
+  // ── Estado cargando ─────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <View style={styles.screen}>
+        <AppHeader variant="blue" noBorder />
+        <FlatList
+          data={[]}
+          renderItem={null}
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={
+            <View style={styles.loaderWrapper}>
+              <MiniLoader label={strings.common.loading} />
+            </View>
+          }
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
+    );
+  }
+
+  // ── Estado con datos o vacío ────────────────────────────────────────────
   return (
     <View style={styles.screen}>
       <AppHeader variant="blue" noBorder />
       <FlatList
-        data={isLoading ? [] : professionals}
+        data={professionals}
         keyExtractor={(item) => item.id}
         renderItem={renderProfessional}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={
-          isLoading ? <SkeletonList /> : <EmptyState onRetry={refetch} />
+          <View style={styles.placeholderWrapper}>
+            <Placeholder
+              icon={<Ionicons name="search-outline" size={32} color={colors.text.tertiary} />}
+              title={strings.home.emptyTitle}
+              description={strings.home.emptyDesc}
+              actionLabel={strings.home.retry}
+              onAction={refetch}
+            />
+          </View>
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         contentContainerStyle={styles.listContent}
@@ -238,7 +223,7 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing[4],
     marginTop: -spacing[5],
     paddingHorizontal: spacing[4],
-    minHeight: layout.buttonHeightMd, // 44 — Apple HIG
+    minHeight: layout.buttonHeightMd,
   },
   searchPlaceholder: {
     ...typography.inputText,
@@ -269,46 +254,14 @@ const styles = StyleSheet.create({
   separator: {
     height: spacing[3],
   },
-});
 
-// Empty / Error
-const emptyStyles = StyleSheet.create({
-  container: {
-    alignItems: "center",
-    paddingHorizontal: spacing[8],
-    paddingTop: spacing[10],
-    gap: spacing[3],
-  },
-  title: {
-    ...typography.h3,
-    color: colors.text.primary,
-    textAlign: "center",
-  },
-  desc: {
-    ...typography.bodyMd,
-    color: colors.text.secondary,
-    textAlign: "center",
-  },
-  retryBtn: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[3],
-    borderRadius: componentRadius.button,
-    backgroundColor: colors.brand.primaryLight,
-    minHeight: layout.buttonHeightMd,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  retryLabel: {
-    ...typography.buttonMd,
-    color: colors.brand.primary,
-  },
-});
-
-// Skeleton list
-const skeletonStyles = StyleSheet.create({
-  container: {
+  // Placeholder / Loader wrappers
+  placeholderWrapper: {
     paddingHorizontal: spacing[4],
-    gap: spacing[3],
-    paddingTop: spacing[2],
+    paddingTop: spacing[6],
+  },
+  loaderWrapper: {
+    paddingTop: spacing[10],
+    minHeight: 200,
   },
 });
