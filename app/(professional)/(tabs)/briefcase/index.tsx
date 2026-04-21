@@ -5,9 +5,14 @@
 // Los datos salen de Supabase vía useProfessionalProfile (usuario logueado)
 // + useMyLocation (ubicación propia). Se construye un ProfessionalDetail
 // para pasarle a la screen compartida.
+//
+// Reseñas: el pro VE sus stats (rating + count) y la lista completa de
+// reseñas que recibió. NO reseña (canWriteReview por default=false, nunca
+// pasamos onSubmitReview → la card de escritura nunca se renderiza).
 
 import { useMemo } from "react";
 import { View, StyleSheet } from "react-native";
+import { useRouter } from "expo-router";
 
 import { ProfessionalBriefcaseScreen } from "@/features/professionals/screens/ProfessionalBriefcaseScreen";
 import type {
@@ -16,14 +21,20 @@ import type {
 } from "@/features/professionals/types";
 import { useProfessionalProfile } from "@/features/professionals/hooks/useProfessionalProfile";
 import { useMyLocation } from "@/features/professionals/hooks/useMyLocation";
+import { useProfessionalReviewStats } from "@/features/reviews/hooks/useProfessionalReviewStats";
 import { MiniLoader } from "@/shared/components";
 import { colors } from "@/shared/theme";
 import type { Professional as ProfessionalRow } from "@/shared/services/profileService";
 import type { UserLocationAddress } from "@/shared/services/locationService";
 
 export default function MyPortfolioScreen() {
+  const router = useRouter();
   const { professional: row, isLoading: profileLoading } = useProfessionalProfile();
   const { location, isLoading: locationLoading }         = useMyLocation();
+
+  // Stats propias: rating promedio + cantidad de reseñas recibidas.
+  // `enabled=!!row?.id` evita pegarle al RPC hasta tener el id del pro.
+  const { stats: reviewStats } = useProfessionalReviewStats(row?.id, !!row?.id);
 
   const detail = useMemo<ProfessionalDetail | null>(() => {
     if (!row) return null;
@@ -46,9 +57,10 @@ export default function MyPortfolioScreen() {
   return (
     <ProfessionalBriefcaseScreen
       detail={detail}
+      reviewStats={reviewStats}
       modalityReadOnly
-      hideStats
       hideDistance
+      onSeeAllReviews={() => router.push("/briefcase/reviews")}
     />
   );
 }

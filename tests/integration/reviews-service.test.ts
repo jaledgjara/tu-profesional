@@ -170,16 +170,65 @@ describe("reviewsService — createReview", () => {
     ).rejects.toThrow();
   });
 
-  it("bob crea reseña válida sin comment (null)", async () => {
+  it("bob crea reseña válida con comment", async () => {
     await expect(
       createReview(
         {
           professionalId: docUser.id,
           rating:         4,
+          comment:        "Mi experiencia",
         },
         bobSupa,
       ),
     ).resolves.toBeUndefined();
+  });
+
+  it("createReview sin comment (NULL) falla por NOT NULL", async () => {
+    // Después de 0015_reviews_comment_required, comment es NOT NULL.
+    // Usamos un usuario nuevo — si reusáramos alice o bob, el UNIQUE los
+    // bloquearía antes y el test dejaría de verificar el CHECK real.
+    const email = `${PREFIX}-carol@test.local`;
+    const carol = await createTestUser(email);
+    const carolSupa = await authenticatedClient(email);
+    await createProfile(
+      { userId: carol.id, role: "client", email },
+      carolSupa,
+    );
+
+    await expect(
+      createReview(
+        { professionalId: docUser.id, rating: 4 },
+        carolSupa,
+      ),
+    ).rejects.toThrow();
+
+    await deleteTestUser(carol.id);
+  });
+
+  it("createReview con comment '' (vacío) falla por CHECK", async () => {
+    const email = `${PREFIX}-dan@test.local`;
+    const dan = await createTestUser(email);
+    const danSupa = await authenticatedClient(email);
+    await createProfile(
+      { userId: dan.id, role: "client", email },
+      danSupa,
+    );
+
+    await expect(
+      createReview(
+        { professionalId: docUser.id, rating: 4, comment: "" },
+        danSupa,
+      ),
+    ).rejects.toThrow();
+
+    await expect(
+      createReview(
+        { professionalId: docUser.id, rating: 4, comment: "    " },
+        danSupa,
+      ),
+    ).rejects.toThrow();
+
+    await deleteTestUser(dan.id);
   });
 });
 
@@ -207,7 +256,7 @@ describe("reviewsService — lectura post-review", () => {
     expect(reviews[0].rating).toBe(4);
     expect(reviews[1].rating).toBe(5);
     expect(reviews[1].comment).toBe("Excelente profesional");
-    expect(reviews[0].comment).toBeNull();
+    expect(reviews[0].comment).toBe("Mi experiencia");
   });
 
   it("fetchProfessionalReviews respeta limit", async () => {
@@ -293,5 +342,164 @@ describe("reviewsService — deleteReview", () => {
     const stats = await fetchProfessionalReviewStats(docUser.id, aliceSupa);
     expect(stats.reviewCount).toBe(1);
     expect(stats.avgRating).toBe(4);
+  });
+
+  it("alice intenta borrar la reseña de bob: no lanza pero no cambia nada (RLS filtra)", async () => {
+    const bobReview = await fetchMyReviewFor(docUser.id, bobSupa);
+    expect(bobReview).not.toBeNull();
+
+    // supabase-js no lanza: la RLS filtra → afecta 0 rows silenciosamente.
+    await expect(deleteReview(bobReview!.id, aliceSupa)).resolves.toBeUndefined();
+
+    const stillThere = await fetchMyReviewFor(docUser.id, bobSupa);
+    expect(stillThere).not.toBeNull();
+    expect(stillThere!.id).toBe(bobReview!.id);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// updateReview — patches parciales
+// Estado al entrar: solo bob tiene reseña (rating=4, comment="Mi experiencia")
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("reviewsService — updateReview (patches parciales)", () => {
+  it("patch solo con rating: deja comment intacto", async () => {
+    const mine = await fetchMyReviewFor(docUser.id, bobSupa);
+    expect(mine).not.toBeNull();
+    expect(mine!.comment).toBe("Mi experiencia");
+
+    await updateReview(mine!.id, { rating: 5 }, bobSupa);
+
+    const updated = await fetchMyReviewFor(docUser.id, bobSupa);
+    expect(updated!.rating).toBe(5);
+    expect(updated!.comment).toBe("Mi experiencia");
+  });
+
+  it("patch solo con comment: deja rating intacto", async () => {
+    const mine = await fetchMyReviewFor(docUser.id, bobSupa);
+    expect(mine!.rating).toBe(5);
+
+    await updateReview(mine!.id, { comment: "Agrego texto" }, bobSupa);
+
+    const updated = await fetchMyReviewFor(docUser.id, bobSupa);
+    expect(updated!.rating).toBe(5);
+    expect(updated!.comment).toBe("Agrego texto");
+  });
+
+  it("patch vacío (sin campos) no lanza ni rompe la fila", async () => {
+    const mine = await fetchMyReviewFor(docUser.id, bobSupa);
+    expect(mine).not.toBeNull();
+
+    await expect(
+      updateReview(mine!.id, {}, bobSupa),
+    ).resolves.toBeUndefined();
+
+    // La fila sigue intacta con los valores del test anterior.
+    const unchanged = await fetchMyReviewFor(docUser.id, bobSupa);
+    expect(unchanged!.rating).toBe(5);
+    expect(unchanged!.comment).toBe("Agrego texto");
+  });
+
+  it("patch con comment = null falla por NOT NULL (regresión 0015)", async () => {
+    const mine = await fetchMyReviewFor(docUser.id, bobSupa);
+    expect(mine!.comment).toBe("Agrego texto");
+
+    await expect(
+      updateReview(mine!.id, { comment: null }, bobSupa),
+    ).rejects.toThrow();
+
+    // El comment sigue intacto (la update falló en el CHECK, no tocó la fila).
+    const unchanged = await fetchMyReviewFor(docUser.id, bobSupa);
+    expect(unchanged!.comment).toBe("Agrego texto");
+  });
+
+  it("patch con comment = '' (vacío) falla por CHECK", async () => {
+    const mine = await fetchMyReviewFor(docUser.id, bobSupa);
+
+    await expect(
+      updateReview(mine!.id, { comment: "" }, bobSupa),
+    ).rejects.toThrow();
+
+    await expect(
+      updateReview(mine!.id, { comment: "   " }, bobSupa),
+    ).rejects.toThrow();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// createReview — re-crear después de delete
+// Estado al entrar: solo bob tiene reseña. alice borró la suya antes.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("reviewsService — re-crear tras delete", () => {
+  it("alice puede volver a crear su reseña después de haberla borrado", async () => {
+    // UNIQUE (professional_id, reviewer_id) no bloquea porque la fila anterior
+    // ya no existe en la tabla.
+    await expect(
+      createReview(
+        {
+          professionalId: docUser.id,
+          rating:         2,
+          comment:        "Nueva reseña",
+        },
+        aliceSupa,
+      ),
+    ).resolves.toBeUndefined();
+
+    const revived = await fetchMyReviewFor(docUser.id, aliceSupa);
+    expect(revived).not.toBeNull();
+    expect(revived!.rating).toBe(2);
+    expect(revived!.comment).toBe("Nueva reseña");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// fetchProfessionalReviews — paginación + anonimato estructural
+// Estado al entrar: alice=2, bob=5 (2 reseñas).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("reviewsService — paginación y anonimato", () => {
+  it("offset mayor al total devuelve []", async () => {
+    const empty = await fetchProfessionalReviews(
+      docUser.id,
+      { limit: 20, offset: 100 },
+      aliceSupa,
+    );
+    expect(empty).toEqual([]);
+  });
+
+  it("limit 1 + offset 1 devuelve la segunda reseña (paginación correcta)", async () => {
+    const all = await fetchProfessionalReviews(
+      docUser.id,
+      { limit: 20 },
+      aliceSupa,
+    );
+    expect(all.length).toBe(2);
+
+    const page2 = await fetchProfessionalReviews(
+      docUser.id,
+      { limit: 1, offset: 1 },
+      aliceSupa,
+    );
+    expect(page2.length).toBe(1);
+    expect(page2[0].id).toBe(all[1].id);
+  });
+
+  it("la respuesta pública no expone reviewer_id (anonimato estructural)", async () => {
+    const reviews = await fetchProfessionalReviews(
+      docUser.id,
+      { limit: 20 },
+      aliceSupa,
+    );
+    expect(reviews.length).toBeGreaterThan(0);
+
+    // Ninguna key debería llamarse reviewerId ni reviewer_id en el objeto
+    // mapeado. El tipo `Review` ya lo garantiza a nivel TS, pero chequeamos
+    // el shape runtime por defensa en profundidad.
+    for (const r of reviews) {
+      const keys = Object.keys(r);
+      expect(keys).not.toContain("reviewerId");
+      expect(keys).not.toContain("reviewer_id");
+    }
   });
 });
