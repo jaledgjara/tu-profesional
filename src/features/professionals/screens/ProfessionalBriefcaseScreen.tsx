@@ -15,7 +15,7 @@ import {
   Linking,
 } from "react-native";
 import type { ComponentProps, ReactNode } from "react";
-import { Ionicons, FontAwesome6 } from "@expo/vector-icons";
+import { Ionicons, FontAwesome6, MaterialCommunityIcons } from "@expo/vector-icons";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 
 import {
@@ -23,12 +23,11 @@ import {
   Avatar,
   Badge,
   InfoSection,
-  SectionRow,
   IconButton,
   Switch,
 } from "@/shared/components";
-import { StatsRow } from "@/features/professionals/components/StatsRow";
-import { ReviewCard } from "@/features/professionals/components/ReviewCard";
+import type { ReviewStats, MyReview } from "@/features/reviews/types";
+import { ReviewPromptCard } from "@/features/reviews/components/ReviewPromptCard";
 import type { ProfessionalDetail } from "@/features/professionals/types";
 import {
   colors,
@@ -37,7 +36,7 @@ import {
   componentRadius,
   getShadow,
 } from "@/shared/theme";
-import { strings } from "@/shared/utils/strings";
+import { strings, interpolate } from "@/shared/utils/strings";
 import { formatCategory } from "@/shared/utils/format";
 
 type IoniconName = ComponentProps<typeof Ionicons>["name"];
@@ -45,15 +44,6 @@ type IoniconName = ComponentProps<typeof Ionicons>["name"];
 // ─────────────────────────────────────────────────────────────────────────────
 // TIPOS
 // ─────────────────────────────────────────────────────────────────────────────
-
-export interface ReviewData {
-  id: string;
-  rating: number;
-  text: string;
-  authorName: string;
-  authorImageUrl?: string | null;
-  dateString: string;
-}
 
 export type SocialLinkType =
   | "whatsapp"
@@ -81,8 +71,19 @@ export interface BriefcaseAddress {
 export interface ProfessionalBriefcaseScreenProps {
   /** Datos completos del profesional (de fetchProfessionalDetail o construido localmente). */
   detail: ProfessionalDetail;
-  /** Reseñas del profesional. Cuando exista el sistema de reviews, vendrán del hook. */
-  reviews?: ReviewData[];
+  /** Stats agregados (avg + count). Si se pasa, se renderiza la box de Rating. */
+  reviewStats?: ReviewStats | null;
+  /** Reseña del usuario actual (si existe). Null = todavía no reseñó. */
+  myReview?: MyReview | null;
+  /** Si es `true`, renderiza la ReviewPromptCard bajo Redes Sociales. */
+  canWriteReview?: boolean;
+  /** Submit de la reseña inline. Requerido si canWriteReview. */
+  onSubmitReview?: (
+    rating:  number,
+    comment: string | null,
+  ) => Promise<{ ok: boolean; message?: string }>;
+  /** Flag de "submit en curso" — deshabilita el form. */
+  isSubmittingReview?: boolean;
   /**
    * Si es `true`, los toggles de modalidad son informativos (no editables).
    * La edición va por el formulario de profesional, no por el briefcase.
@@ -97,6 +98,8 @@ export interface ProfessionalBriefcaseScreenProps {
   onBack?: () => void;
   onEdit?: () => void;
   onSeeAllReviews?: () => void;
+  /** Navegación a la pantalla de edición de reseña. Solo se usa cuando ya hay myReview. */
+  onEditReview?: () => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -215,7 +218,11 @@ function buildSocialLinksFromDetail(d: ProfessionalDetail): SocialLinkData[] {
 
 export function ProfessionalBriefcaseScreen({
   detail,
-  reviews = [],
+  reviewStats,
+  myReview,
+  canWriteReview = false,
+  onSubmitReview,
+  isSubmittingReview = false,
   modalityReadOnly = false,
   hideStats = false,
   hideDistance = false,
@@ -224,6 +231,7 @@ export function ProfessionalBriefcaseScreen({
   onBack,
   onEdit,
   onSeeAllReviews,
+  onEditReview,
 }: ProfessionalBriefcaseScreenProps) {
   const distanceKm = detail.distanceM
     ? (detail.distanceM / 1000).toFixed(1)
@@ -242,8 +250,18 @@ export function ProfessionalBriefcaseScreen({
     setWorksInPerson(detail.attendsPresencial);
   }, [detail.attendsPresencial]);
 
-  // Stats — ocultas hasta que exista el sistema de reseñas
-  const stats = hideStats ? [] : [];
+  // Rating badge — cuadrado centrado sobre el hero.
+  // Dos estados:
+  //   - Con reseñas: valor (ej "4.5") + ⭐ + "N reseñas" (subrayado, hint de link).
+  //   - Sin reseñas: label "NUEVO" centrada (sin número ni count).
+  // `hideStats` oculta el badge (vista propia del pro en briefcase).
+  const hasRating      = !!reviewStats && reviewStats.reviewCount > 0;
+  const showStatsBadge = !hideStats;
+  const reviewCount    = reviewStats?.reviewCount ?? 0;
+  const reviewCountLabel =
+    reviewCount === 1
+      ? strings.reviews.countOne
+      : interpolate(strings.reviews.count, { n: reviewCount });
 
   // Dirección para el mapa
   const address: BriefcaseAddress | null = detail.address
@@ -331,10 +349,43 @@ export function ProfessionalBriefcaseScreen({
         ) : null}
       </View>
 
-      {/* ── STATS ROW — overlap sobre hero ──────────────────────────────── */}
-      {stats.length > 0 && (
+      {/* ── RATING BADGE — cuadrado centrado con overlap sobre el hero ──── */}
+      {/* Cuando hay onSeeAllReviews, todo el badge es un Pressable que     */}
+      {/* navega a AllReviewsScreen. Si no, es decorativo (vista del pro).  */}
+      {showStatsBadge && (
         <View style={styles.statsWrapper}>
-          <StatsRow stats={stats} />
+          <Pressable
+            onPress={onSeeAllReviews}
+            disabled={!onSeeAllReviews}
+            accessibilityRole={onSeeAllReviews ? "button" : undefined}
+            accessibilityLabel={
+              onSeeAllReviews ? strings.publicProfile.seeAllReviews : undefined
+            }
+            style={({ pressed }) => [
+              styles.ratingBadge,
+              getShadow("sm"),
+              pressed && onSeeAllReviews ? { opacity: 0.75 } : null,
+            ]}>
+            {hasRating ? (
+              <Text style={styles.ratingValue}>
+                {reviewStats!.avgRating.toFixed(1)}
+              </Text>
+            ) : (
+              <Text style={styles.ratingNuevo}>
+                {strings.publicProfile.newPro}
+              </Text>
+            )}
+            <MaterialCommunityIcons
+              name="star"
+              size={32}
+              color={colors.text.primary}
+            />
+            {hasRating && (
+              <Text style={styles.ratingCount}>
+                {reviewCountLabel}
+              </Text>
+            )}
+          </Pressable>
         </View>
       )}
 
@@ -342,7 +393,7 @@ export function ProfessionalBriefcaseScreen({
       <View
         style={[
           styles.sections,
-          stats.length === 0 && styles.sectionsNoStats,
+          !showStatsBadge && styles.sectionsNoStats,
         ]}
       >
         {/* UBICACIÓN + MAPA */}
@@ -496,43 +547,6 @@ export function ProfessionalBriefcaseScreen({
           </View>
         </InfoSection>
 
-        {/* RESEÑAS */}
-        {reviews.length > 0 && (
-          <View style={styles.reviewsBlock}>
-            <SectionRow
-              title={strings.publicProfile.reviews}
-              actionLabel={
-                onSeeAllReviews
-                  ? strings.publicProfile.seeAllReviews
-                  : undefined
-              }
-              onAction={onSeeAllReviews}
-            />
-            <View style={styles.reviewsList}>
-              {reviews.slice(0, 3).map((review) => (
-                <ReviewCard
-                  key={review.id}
-                  rating={review.rating}
-                  text={review.text}
-                  authorName={review.authorName}
-                  authorImageUrl={review.authorImageUrl}
-                  dateString={review.dateString}
-                />
-              ))}
-            </View>
-            {onSeeAllReviews && reviews.length > 3 && (
-              <Pressable
-                onPress={onSeeAllReviews}
-                style={[styles.seeAllBtn, getShadow("sm")]}
-                accessibilityRole="button">
-                <Text style={styles.seeAllLabel}>
-                  {strings.publicProfile.seeAllReviews}
-                </Text>
-              </Pressable>
-            )}
-          </View>
-        )}
-
         {/* REDES SOCIALES — solo las que el profesional cargó en su perfil */}
         {socialLinks.length > 0 && (
           <InfoSection title={strings.publicProfile.socialNetworks}>
@@ -569,6 +583,16 @@ export function ProfessionalBriefcaseScreen({
               }}
             />
           </InfoSection>
+        )}
+
+        {/* AGREGAR VALORACIÓN — form inline o estado "gracias" según corresponda */}
+        {canWriteReview && onSubmitReview && (
+          <ReviewPromptCard
+            hasMyReview={!!myReview}
+            onSubmit={onSubmitReview}
+            isSubmitting={isSubmittingReview}
+            onEdit={onEditReview}
+          />
         )}
       </View>
     </ScrollView>
@@ -614,10 +638,38 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // Stats (overlap)
+  // Rating badge (cuadrado centrado, overlap sobre hero)
   statsWrapper: {
-    marginHorizontal: spacing[4],
-    marginTop: -spacing[8],
+    alignItems: "center",     // centra el badge horizontalmente
+    marginTop:  -spacing[8],  // overlap con el hero
+  },
+  ratingBadge: {
+    minWidth:          104,
+    minHeight:         96,           // consistente entre estados con/sin reseñas
+    backgroundColor:   colors.background.card,
+    borderRadius:      componentRadius.statsRow,
+    paddingHorizontal: spacing[5],
+    paddingVertical:   spacing[3],
+    alignItems:        "center",
+    justifyContent:    "center",
+    gap:               spacing[1.5],
+  },
+  // Con reseñas — número grande y bold
+  ratingValue: {
+    ...typography.statValue,         // 28pt bold display
+    color: colors.text.primary,
+  },
+  // Sin reseñas — "NUEVO" en label chico y elegante con tracking amplio
+  ratingNuevo: {
+    ...typography.overline,          // 11pt semibold, letterSpacing 1.5
+    color:         colors.text.primary,
+    textTransform: "uppercase",
+  },
+  // Count de reseñas — bajo la estrella, subrayado como hint de link
+  ratingCount: {
+    ...typography.caption,
+    color:              colors.text.secondary,
+    textDecorationLine: "underline",
   },
 
   editLabel: {
@@ -765,26 +817,6 @@ const styles = StyleSheet.create({
   mapDistanceText: {
     ...typography.buttonSm,
     color: colors.brand.primary,
-  },
-
-  // Reseñas
-  reviewsBlock: {
-    gap: spacing[3],
-  },
-  reviewsList: {
-    gap: spacing[3],
-  },
-  seeAllBtn: {
-    backgroundColor: colors.background.card,
-    borderRadius: componentRadius.button,
-    paddingVertical: spacing[3],
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 44,
-  },
-  seeAllLabel: {
-    ...typography.buttonMd,
-    color: colors.text.brand,
   },
 
   // Redes sociales — FlatList horizontal con cards compactos

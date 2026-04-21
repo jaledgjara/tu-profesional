@@ -151,15 +151,21 @@ export async function fetchMyReviewFor(
     throw error;
   }
 
-  // El RPC está declarado `returns reviews` (singular): supabase-js puede
-  // devolver la fila directamente o envuelta en un array según versión.
-  const row = (Array.isArray(data) ? data[0] : data) as ReviewRow | null | undefined;
-  if (!row) {
+  // La RPC declara `returns setof reviews` (0014): supabase-js devuelve un
+  // array (vacío = no hay reseña, 1 elemento = hay). Soportamos también el
+  // shape viejo (objeto directo) por si corremos contra una DB sin aplicar
+  // la migración.
+  //
+  // Guard extra: aun con la migración aplicada, si alguna vez volviese a
+  // llegar un "phantom row" con id=null (bug pre-0014), lo tratamos como
+  // "no hay reseña". Ver 0014_fix_get_my_review_for.sql para el contexto.
+  const maybe = Array.isArray(data) ? data[0] : data;
+  if (!maybe || (maybe as ReviewRow).id == null) {
     console.log("[reviews] fetch my review: none");
     return null;
   }
 
-  const myReview = mapMyReviewRow(row);
+  const myReview = mapMyReviewRow(maybe as ReviewRow);
   console.log("[reviews] fetch my review ok", { id: myReview.id, rating: myReview.rating });
   return myReview;
 }
@@ -254,3 +260,42 @@ export async function deleteReview(
 
   console.log("[reviews] delete ok");
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 👀 REVIEW NOTES (borrar antes de merge a main si querés)
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. `fetchProfessionalReviews` lee la VISTA `reviews_public`, NO la tabla.
+//    Es deliberado — defensa en profundidad para el anonimato (incluso si
+//    alguien eventualmente agrega la policy de SELECT pública a `reviews`,
+//    esto sigue sin exponer `reviewer_id` porque la columna no está en la
+//    vista). Si algún día necesitás leer la tabla base, hacelo explícito.
+//
+// 2. `fetchMyReviewFor` usa la RPC (no un SELECT directo) porque necesitamos
+//    filtrar por `auth.uid()` server-side. Con un SELECT directo funcionaría
+//    igual gracias a RLS, pero la RPC es más explícita sobre la intención.
+//
+// 3. `createReview` lee `reviewerId` de `auth.getUser()` — confiable, es el
+//    JWT del cliente. NO aceptamos reviewerId desde el input porque sería un
+//    vector de impersonation (aunque la RLS también lo bloquearía, mejor
+//    defensa en profundidad).
+//
+// 4. El `narrow` con `!` en `mapPublicRow` (row.id!) es seguro: la vista
+//    proyecta columnas de la tabla base que son NOT NULL. El driver las
+//    tipea como nullable porque la vista no preserva constraints.
+//
+// 5. `Number(row?.avg_rating ?? 0)` — PostgreSQL `numeric` puede llegar como
+//    string. Normalizamos siempre. Si algún día cambiás a `double precision`,
+//    sacá el Number() (aunque no rompería).
+//
+// 6. Los console.log tienen prefijo `[reviews]` para filtrar en dev. No
+//    loggean comentarios ni nombres — solo IDs y counts. Si querés más
+//    verbose, agregá rating/hasComment, nunca el texto del comment.
+//
+// CASOS NO TESTEADOS MANUALMENTE AÚN (probar en el paso 15 — smoke test):
+// - createReview con comment = "" (string vacío) → ¿va a null o a ""?
+//   Ahora mismo: input.comment ?? null → si es "", guarda "" (no null).
+//   Si preferís tratar "" como null, cambiar a `input.comment || null`.
+// - fetchProfessionalReviews con offset fuera de rango → debería devolver [].
+// - updateReview de un id que no existe → ¿silenciosamente 0 rows o error?
+//   supabase-js no tira error, solo afecta 0 rows. La UI no va a notar.
+

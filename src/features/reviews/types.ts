@@ -48,3 +48,17 @@ export interface UpdateReviewInput {
   rating?:  number;
   comment?: string | null;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 👀 REVIEW NOTES (borrar antes de merge a main si querés)
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. `Review` NO tiene `reviewerId` a propósito — viene de la vista anónima
+//    `reviews_public`. Si alguna UI necesita nombre/avatar del autor, es un bug
+//    de diseño: romperíamos el anonimato. Usar `MyReview` solo para el autor.
+// 2. `avgRating: number` en `ReviewStats` es siempre un número (no null). El
+//    service devuelve 0 cuando no hay reseñas. Simplifica la UI (no hace falta
+//    chequear nullish antes de .toFixed()).
+// 3. `comment?` en `CreateReviewInput` es opcional (→ null en DB). El CHECK de
+//    DB valida length ≤ 1000 — no validamos en el cliente (fuente de verdad es
+//    la DB, acá sobra).
+

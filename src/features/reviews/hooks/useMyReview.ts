@@ -64,3 +64,22 @@ export function useMyReview(
 
   return { myReview, isLoading, error, refetch };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 👀 REVIEW NOTES
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. Patrón más simple que useProfessionalReviews: solo una fuente, sin
+//    paginación. Uso `cancelled` flag (no generation counter) porque no hay
+//    loadMore que pueda correr en paralelo.
+//
+// 2. `enabled=false` limpia el state (setMyReview(null)) — útil si el usuario
+//    desloguea mientras la screen está montada: el CTA pasa de "Editar" a
+//    "Escribir" sin esperar refetch.
+//
+// 3. Caso "no existe reseña" → `myReview = null`, `error = null`. La screen
+//    decide qué mostrar en base a `myReview !== null` (CTA "Editar") vs
+//    `myReview === null` (CTA "Escribir").
+//
+// 4. `refetch` se va a llamar desde la screen después de cada submit exitoso
+//    para que el CTA del perfil se actualice ("Escribir" → "Editar").
+

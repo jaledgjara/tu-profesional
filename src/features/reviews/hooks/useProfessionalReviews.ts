@@ -156,3 +156,33 @@ export function useProfessionalReviews(
     refetch,
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 👀 REVIEW NOTES
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. Patrón de "generation counter" (generationRef) — copiado de
+//    `usePaginatedProfessionals`. Si el hook se resetea (cambia professionalId,
+//    limit, enabled, o refetch), el gen se incrementa. Las respuestas pendientes
+//    de la versión anterior se descartan. Evita race conditions si el usuario
+//    navega rápido entre perfiles.
+//
+// 2. `Promise.all([reviews, stats])` — se cargan en paralelo. Son 2 roundtrips
+//    que ya no bloquean al otro. Si stats falla pero reviews OK, se marca el
+//    error global y no se muestra ninguno (conservador). Si querés mostrar
+//    reviews aunque stats falle, hay que separar los estados.
+//
+// 3. Paginación OFFSET-BASED (no keyset). Decisión: volúmenes esperados bajos
+//    (< 100 reseñas por pro). Si crece, migrar a keyset con cursor
+//    (created_at, id) como en el service de search.
+//
+// 4. `hasMore = items.length >= limit` — si la última página trae exactamente
+//    `limit`, asumimos que HAY más. La siguiente página puede venir vacía,
+//    ahí `hasMore = 0 >= limit = false`. Un roundtrip "vacío" extra, aceptable.
+//
+// 5. `refetch` incrementa `fetchKey` → dispara el useEffect → reset completo.
+//    Se llama desde screen tras createReview/updateReview/deleteReview para
+//    refrescar la lista y stats.
+//
+// 6. Si `enabled=false` o no hay `professionalId`, el hook NO fetchea pero
+//    igual resetea el state. Útil para "pausar" cuando falta contexto.
+

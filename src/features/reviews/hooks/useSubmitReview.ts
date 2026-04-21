@@ -108,3 +108,34 @@ export function useSubmitReview(): UseSubmitReviewResult {
 
   return { isSubmitting, error, submit, remove };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 👀 REVIEW NOTES
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. `submit()` decide create vs update según `existing` (MyReview | null).
+//    Ventaja: la screen no necesita saber el modo — pasa lo que tiene.
+//    El hook encapsula la decisión y acepta la API "declarativa" del form.
+//
+// 2. `submit()` devuelve `{ ok, message? }` en vez de tirar. Razón: las
+//    screens ya tienen que hacer Alert tras submit — si tiran, tienen que
+//    try/catch igual. Esta forma simplifica:
+//
+//      const res = await submit(existing, input);
+//      if (res.ok) Alert.alert('¡Gracias!'); else Alert.alert('Error', res.message);
+//
+//    Si preferís que tire (para error boundaries), cambiá el return type.
+//
+// 3. `isSubmitting` se toggle también en `remove`. Si la screen tiene dos
+//    botones (Guardar + Borrar), ambos se deshabilitan juntos — OK, no
+//    queremos concurrent mutations sobre la misma reseña.
+//
+// 4. No refresca nada automáticamente. La screen debe llamar:
+//    - useProfessionalReviews.refetch() para actualizar la lista/stats
+//    - useMyReview.refetch() para actualizar el CTA del perfil
+//    ...después de un submit/remove exitoso. Acoplamiento intencional:
+//    mantiene este hook puro (solo mutaciones).
+//
+// 5. `existing.id` es la única forma de targetear el update. Si el backend
+//    agrega soporte para upsert por (professional_id, reviewer_id), se podría
+//    simplificar. Por ahora el id del cliente es necesario.
+
