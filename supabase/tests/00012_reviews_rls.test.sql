@@ -37,21 +37,22 @@ SELECT tests.create_supabase_user('root-rev@test.local', 'admin')
 
 -- ── INSERT tests ───────────────────────────────────────────────────────────
 
--- Test 1: alice (client) inserta reseña válida, comment=null
+-- Test 1: alice (client) inserta reseña válida con comment
+-- Nota: desde 0015, comment es NOT NULL + CHECK trim()>0 (ver 00013).
 SELECT tests.authenticate_as(:'alice_id'::uuid);
 SELECT lives_ok(
   format(
-    'INSERT INTO public.reviews (professional_id, reviewer_id, rating) VALUES (%L, %L, 5)',
-    :'doc_id', :'alice_id'
+    'INSERT INTO public.reviews (professional_id, reviewer_id, rating, comment) VALUES (%L, %L, 5, %L)',
+    :'doc_id', :'alice_id', 'Primera reseña'
   ),
-  'INSERT: client crea reseña con comment null'
+  'INSERT: client crea reseña válida'
 );
 
 -- Test 2: alice intenta insertar una SEGUNDA reseña para el mismo pro → UNIQUE
 SELECT throws_ok(
   format(
-    'INSERT INTO public.reviews (professional_id, reviewer_id, rating) VALUES (%L, %L, 3)',
-    :'doc_id', :'alice_id'
+    'INSERT INTO public.reviews (professional_id, reviewer_id, rating, comment) VALUES (%L, %L, 3, %L)',
+    :'doc_id', :'alice_id', 'Segunda'
   ),
   '23505',
   NULL,
@@ -73,8 +74,8 @@ SELECT throws_ok(
 -- Test 4: bob intenta rating=6 → CHECK
 SELECT throws_ok(
   format(
-    'INSERT INTO public.reviews (professional_id, reviewer_id, rating) VALUES (%L, %L, 6)',
-    :'doc_id', :'bob_id'
+    'INSERT INTO public.reviews (professional_id, reviewer_id, rating, comment) VALUES (%L, %L, 6, %L)',
+    :'doc_id', :'bob_id', 'Intento rating invalido'
   ),
   '23514',
   NULL,
@@ -84,8 +85,8 @@ SELECT throws_ok(
 -- Test 5: bob intenta rating=0 → CHECK
 SELECT throws_ok(
   format(
-    'INSERT INTO public.reviews (professional_id, reviewer_id, rating) VALUES (%L, %L, 0)',
-    :'doc_id', :'bob_id'
+    'INSERT INTO public.reviews (professional_id, reviewer_id, rating, comment) VALUES (%L, %L, 0, %L)',
+    :'doc_id', :'bob_id', 'Intento rating invalido'
   ),
   '23514',
   NULL,
@@ -96,8 +97,8 @@ SELECT throws_ok(
 SELECT tests.authenticate_as(:'root_id'::uuid);
 SELECT throws_ok(
   format(
-    'INSERT INTO public.reviews (professional_id, reviewer_id, rating) VALUES (%L, %L, 4)',
-    :'doc_id', :'root_id'
+    'INSERT INTO public.reviews (professional_id, reviewer_id, rating, comment) VALUES (%L, %L, 4, %L)',
+    :'doc_id', :'root_id', 'Admin intenta'
   ),
   '42501',
   NULL,
@@ -109,8 +110,8 @@ SELECT throws_ok(
 SELECT tests.reset_auth();
 SELECT throws_ok(
   format(
-    'INSERT INTO public.reviews (professional_id, reviewer_id, rating) VALUES (%L, %L, 5)',
-    :'doc_id', :'doc_id'
+    'INSERT INTO public.reviews (professional_id, reviewer_id, rating, comment) VALUES (%L, %L, 5, %L)',
+    :'doc_id', :'doc_id', 'Auto-reseña'
   ),
   '23514',
   NULL,
