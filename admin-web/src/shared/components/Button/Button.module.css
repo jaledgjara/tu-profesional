@@ -1,0 +1,94 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-weight: 500;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.root:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Variantes ─────────────────────────────────────────────────── */
+
+.variant_primary {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: 1px solid var(--color-primary);
+}
+
+.variant_primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.variant_secondary {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.variant_secondary:hover:not(:disabled) {
+  background: var(--color-surface-alt);
+  border-color: var(--color-border);
+}
+
+.variant_ghost {
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid transparent;
+  padding-inline: var(--space-3);
+}
+
+.variant_ghost:hover:not(:disabled) {
+  background: var(--color-surface-alt);
+}
+
+/* ── Tamaños ───────────────────────────────────────────────────── */
+
+.size_md {
+  min-height: 44px;
+  padding: 0 var(--space-6);
+  font-size: var(--text-base);
+}
+
+.size_sm {
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  font-size: var(--text-sm);
+}
+
+/* ── Modificadores ─────────────────────────────────────────────── */
+
+.fullWidth {
+  width: 100%;
+}
+
+.loading {
+  cursor: wait;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
