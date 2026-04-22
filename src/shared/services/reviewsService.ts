@@ -299,3 +299,6 @@ export async function deleteReview(
 // - updateReview de un id que no existe → ¿silenciosamente 0 rows o error?
 //   supabase-js no tira error, solo afecta 0 rows. La UI no va a notar.
 
+
+// reseña totalmente obligatoria
+// metodo -> placeholder. Como trabajas?
