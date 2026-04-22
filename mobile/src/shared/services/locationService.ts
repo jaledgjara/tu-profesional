@@ -15,7 +15,7 @@ import * as Location from "expo-location";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabase } from "@/shared/services/supabase";
-import type { Database } from "@/shared/types/database";
+import type { Database } from "@shared/database.types";
 
 export type UserLocation = Database["public"]["Tables"]["user_locations"]["Row"];
 

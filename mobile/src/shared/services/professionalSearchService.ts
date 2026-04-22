@@ -18,7 +18,7 @@ import type {
   ProfessionalDetail,
   ProfessionalAddress,
 } from "@/features/professionals/types";
-import type { Database } from "@/shared/types/database";
+import type { Database } from "@shared/database.types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TIPOS derivados de database.ts — fuente de verdad automática

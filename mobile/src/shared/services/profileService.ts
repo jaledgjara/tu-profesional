@@ -12,7 +12,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabase } from "@/shared/services/supabase";
-import type { Database } from "@/shared/types/database";
+import type { Database } from "@shared/database.types";
 
 export type Profile      = Database["public"]["Tables"]["profiles"]["Row"];
 export type Professional = Database["public"]["Tables"]["professionals"]["Row"];
