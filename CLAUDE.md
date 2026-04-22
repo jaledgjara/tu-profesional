@@ -11,16 +11,19 @@ Marketplace React Native que conecta usuarios con profesionales de salud mental
 en Argentina. Dos experiencias distintas: usuario final (busca psicólogos) y
 profesional (gestiona su perfil, paga suscripción).
 
-**Estado actual**: Fase de planificación frontend. Ningún componente implementado.
-**Próximo paso**: Sprint 0 — implementar `src/shared/theme/`.
+**Estado actual**: Monorepo reorganizado. Mobile vive en `mobile/`, admin-web
+en camino. Fase de planificación frontend; ningún componente de UI implementado.
+**Próximo paso**: Scaffold de `admin-web/` (React + Vite + CSS Modules) y
+empezar por la autenticación fuerte (password + MFA TOTP).
 
 ---
 
 ## Stack
 
 ```
-Frontend:   React Native + Expo Dev Client + Expo Router + TypeScript
-Backend:    Supabase (Auth, PostgreSQL, Storage)
+Mobile:     React Native + Expo Dev Client + Expo Router + TypeScript
+Admin web:  React + Vite + TypeScript + CSS Modules + Radix primitives  (pendiente)
+Backend:    Supabase (Auth, PostgreSQL, Storage) — compartido
 Geo:        PostGIS en Supabase
 Pagos:      Mercado Pago Preapproval (suscripciones del profesional)
 Serverless: Supabase Edge Functions
@@ -30,20 +33,35 @@ Serverless: Supabase Edge Functions
 
 ## Estructura del proyecto
 
+Monorepo: un repo Git, dos apps independientes que se buildean y despliegan
+por separado (mobile vía EAS, admin-web vía Vercel).
+
 ```
-src/
-├── shared/
-│   ├── theme/          ← tokens de design system
-│   ├── components/     ← UI compartida entre features
-│   └── utils/          ← avatarColor, strings (copy), format
-└── features/
-    ├── auth/
-    ├── professionals/
-    ├── search/
-    ├── profile/
-    └── professional-setup/
-app/                    ← solo rutas Expo Router, sin lógica
+tu-profesional/
+├── mobile/                     ← app React Native (Expo)
+│   ├── src/
+│   │   ├── shared/
+│   │   │   ├── theme/          ← tokens de design system
+│   │   │   ├── components/     ← UI compartida entre features
+│   │   │   └── utils/          ← avatarColor, strings (copy), format
+│   │   └── features/
+│   │       ├── auth/
+│   │       ├── professionals/
+│   │       ├── search/
+│   │       ├── profile/
+│   │       └── professional-setup/
+│   ├── app/                    ← solo rutas Expo Router, sin lógica
+│   ├── tests/
+│   ├── assets/
+│   ├── package.json            ← deps de Expo/RN
+│   └── ...                     ← app.json, eas.json, babel.config.js, etc.
+├── admin-web/                  ← app web admin (Vite + React)           (pendiente)
+├── shared/                     ← tipos/constantes compartidas           (pendiente)
+└── supabase/                   ← migraciones y config (compartido)
 ```
+
+**Importante**: cualquier comando de Expo (`expo start`, `eas build`, tests,
+`tsc`, `npm install`) debe correrse desde `mobile/`, no desde la raíz.
 
 ---
 
@@ -106,26 +124,46 @@ Resumen rápido:
 
 ### ❌ Pendiente
 
-- Sprint 0: `src/shared/theme/` (todos los archivos de tokens)
+**Mobile**
+- Sprint 0: `mobile/src/shared/theme/` (todos los archivos de tokens)
 - Sprint 1: Componentes primitivos (Avatar, Badge, Button, Input, OTP, FilterChip, IconButton)
 - Sprint 2: Componentes de layout (AppHeader, ScreenTitle, StickyBottomBar, etc.)
 - Sprint 3: Componentes de dominio (ProfessionalCard, SkeletonCard, etc.)
 - Sprint 4: Screens (auth, user, professional)
+
+**Admin web** (nuevo)
+- Fase 0: backend prep (tabla `admin_audit_log`, MFA habilitada, primer admin)
+- Fase 1: scaffold `admin-web/` con Vite + React + CSS Modules + Radix
+- Fase 2: login email + password
+- Fase 3: role guard (`role='admin'`)
+- Fase 4: MFA TOTP (obligatoria)
+- Fase 5: idle timeout y gestión de sesión
+- Fase 6: hardening (headers, CSP, audit log wiring)
 
 ---
 
 ## Comandos útiles
 
 ```bash
-# Desarrollo
-npx expo start --dev-client
+# Desarrollo mobile (siempre desde mobile/)
+cd mobile && npx expo start --dev-client
 
-# Generar tipos de Supabase (cuando haya schema)
-supabase gen types typescript --local > src/shared/types/database.ts
+# Type check mobile
+cd mobile && npx tsc --noEmit
 
-# Build con EAS
-eas build --platform ios --profile development
-eas build --platform android --profile development
+# Tests
+cd mobile && npm test                    # DB (pgtap) + integración (vitest)
+
+# Generar tipos de Supabase
+supabase gen types typescript --local > mobile/src/shared/types/database.ts
+
+# Build mobile con EAS (desde mobile/)
+cd mobile && eas build --platform ios --profile development
+cd mobile && eas build --platform android --profile development
+
+# Migraciones Supabase (desde la raíz)
+supabase migration new nombre_migracion
+supabase db reset
 ```
 
 ---
@@ -154,4 +192,5 @@ Estos 10 puntos se verifican en cada PR:
 - Cuando se agrega una dependencia nueva: agregar en Stack
 - **No** agregar código aquí — este archivo es descripción, no implementación
 
-Última actualización: Pre-implementación, Sprint 0 pendiente.
+Última actualización: Reorganización a monorepo. Mobile movido a `mobile/`,
+admin-web pendiente de scaffold.
