@@ -1,0 +1,106 @@
+/* Design tokens — paleta y variables que mobile y admin-web comparten.
+   Si un color se usa en más de un lugar, tiene que ser una variable.
+   NUNCA hardcodear hex en un .module.css. */
+
+:root {
+  /* ─── Primary Blue ─── */
+  --blue-50:  #EEF4FD;
+  --blue-100: #DDEAFC;
+  --blue-200: #BAD5F8;
+  --blue-500: #2E6CC8;   /* brand primary */
+  --blue-600: #2558A8;
+  --blue-800: #1A3563;
+  --blue-900: #112347;
+
+  /* ─── Accent Jade ─── */
+  --jade-50:  #E8FAF8;
+  --jade-500: #2CA89E;   /* accent */
+  --jade-600: #228A82;
+  --jade-700: #1A6B65;
+
+  /* ─── Neutral Sand ─── */
+  --sand-50:  #F7F5F2;
+  --sand-100: #EFEDE9;
+  --sand-200: #DDD9D4;
+  --sand-300: #C8C3BC;
+  --sand-400: #AAA49C;
+  --sand-500: #8E877D;
+  --sand-600: #716A62;
+  --sand-700: #56504A;
+  --sand-800: #3D3830;
+  --sand-900: #27231C;
+
+  /* ─── Status ─── */
+  --success:    #16A34A;
+  --success-bg: #DCFCE7;
+  --warning:    #D97706;
+  --warning-bg: #FEF3C7;
+  --error:      #DC2626;
+  --error-bg:   #FEE2E2;
+
+  /* ─── Semantic aliases (consume siempre estos en componentes) ─── */
+  --color-bg:          var(--sand-50);
+  --color-surface:     #FFFFFF;
+  --color-surface-alt: var(--sand-100);
+
+  --color-text:          var(--sand-900);
+  --color-text-muted:    var(--sand-600);
+  --color-text-subtle:   var(--sand-400);
+  --color-text-inverse:  #FFFFFF;
+  --color-text-danger:   var(--error);
+
+  --color-primary:       var(--blue-500);
+  --color-primary-hover: var(--blue-600);
+  --color-accent:        var(--jade-500);
+
+  --color-border:         var(--sand-200);
+  --color-border-subtle:  var(--sand-100);
+  --color-border-focus:   var(--blue-500);
+
+  --color-overlay: rgba(0, 0, 0, 0.32);
+
+  /* ─── Spacing (escala de 4px) ─── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ─── Radius ─── */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;       /* cards */
+  --radius-full: 9999px;     /* pills, avatars */
+
+  /* ─── Fuentes ─── */
+  --font-heading: 'Bricolage Grotesque', system-ui, -apple-system, sans-serif;
+  --font-body:    'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono:    ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* ─── Tipografía (tamaño base) ─── */
+  --text-xs:   12px;
+  --text-sm:   14px;
+  --text-base: 16px;
+  --text-lg:   18px;
+  --text-xl:   20px;
+  --text-2xl:  24px;
+  --text-3xl:  32px;
+
+  /* ─── Sombras (sutiles — admin es denso) ─── */
+  --shadow-sm: 0 1px 2px rgba(39, 35, 28, 0.06);
+  --shadow-md: 0 4px 12px rgba(39, 35, 28, 0.08);
+  --shadow-lg: 0 12px 32px rgba(39, 35, 28, 0.12);
+
+  /* ─── Z-index escalonado ─── */
+  --z-dropdown: 100;
+  --z-sticky:   200;
+  --z-overlay:  900;
+  --z-modal:    1000;
+  --z-toast:    1100;
+}
