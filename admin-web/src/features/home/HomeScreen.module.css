@@ -1,51 +1,8 @@
-.container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-4) var(--space-8);
-  border-bottom: 1px solid var(--color-border-subtle);
-  background: var(--color-surface);
-}
-
-.brand {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.user {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.email {
+.errorBanner {
+  padding: var(--space-4);
+  background: var(--error-bg);
+  color: var(--color-text-danger);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: var(--radius-md);
   font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  padding: var(--space-12) var(--space-8);
-  text-align: center;
-}
-
-.title {
-  font-size: var(--text-3xl);
-}
-
-.subtitle {
-  color: var(--color-text-muted);
-  max-width: 480px;
 }

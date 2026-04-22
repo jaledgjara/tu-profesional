@@ -1,42 +1,39 @@
-// Placeholder de la home del admin. En PRs siguientes pasa a ser el
-// dashboard real con KPIs y accesos a secciones.
+// HomeScreen — dashboard principal. El layout (sidebar + header) lo
+// provee AdminShell, así que acá solo va el contenido específico de /.
 
-import { useNavigate } from 'react-router-dom';
-
-import { Button } from '@/shared/components/Button/Button';
-import { useSession } from '@/app/providers/AuthProvider';
-import { useAdminProfile } from '@/features/auth/hooks/useAdminProfile';
+import { Page } from '@/shared/components/Page/Page';
+import { KpiGrid } from '@/features/dashboard/components/KpiGrid/KpiGrid';
+import { KpiCard } from '@/features/dashboard/components/KpiCard/KpiCard';
+import { useUserCounts } from '@/features/dashboard/hooks/useUserCounts';
 
 import styles from './HomeScreen.module.css';
 
 export function HomeScreen() {
-  const navigate = useNavigate();
-  const { signOut } = useSession();
-  const { data: profile } = useAdminProfile();
-
-  async function handleSignOut() {
-    await signOut();
-    navigate('/login', { replace: true });
-  }
+  const { data: counts, isLoading, isError } = useUserCounts();
 
   return (
-    <main className={styles.container}>
-      <div className={styles.header}>
-        <span className={styles.brand}>Tu Profesional · Admin</span>
-        <div className={styles.user}>
-          <span className={styles.email}>{profile?.email ?? ''}</span>
-          <Button variant="secondary" size="sm" onClick={handleSignOut}>
-            Salir
-          </Button>
+    <Page
+      title="Panel"
+      subtitle="Resumen general de la plataforma."
+    >
+      {isError ? (
+        <div className={styles.errorBanner} role="alert">
+          No se pudieron cargar los KPIs. Probá recargar la página.
         </div>
-      </div>
-
-      <section className={styles.content}>
-        <h1 className={styles.title}>Panel</h1>
-        <p className={styles.subtitle}>
-          Autenticación OK. Las secciones del dashboard vienen en PRs siguientes.
-        </p>
-      </section>
-    </main>
+      ) : (
+        <KpiGrid>
+          <KpiCard
+            label="Clientes"
+            value={counts?.clients}
+            isLoading={isLoading}
+          />
+          <KpiCard
+            label="Profesionales"
+            value={counts?.professionals}
+            isLoading={isLoading}
+          />
+        </KpiGrid>
+      )}
+    </Page>
   );
 }

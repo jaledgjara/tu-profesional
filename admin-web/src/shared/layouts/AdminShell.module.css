@@ -1,0 +1,12 @@
+.shell {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;          /* permite shrink adentro de flex */
+  overflow-x: hidden;    /* evita scroll horizontal por overflow de una página */
+  background: var(--color-bg);
+}
