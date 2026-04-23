@@ -104,7 +104,14 @@ export default function LocationFormScreen({ mode }: LocationFormScreenProps) {
         province:   "Mendoza",
         country:    "Argentina",
       });
-      router.replace('/');
+      // Post-save: el pro va a la status screen (donde se decide pending/
+      // approved/rejected con un loader previo). El client sigue al home
+      // vía el guard de '/', que lo resuelve por rol.
+      if (mode === "professional") {
+        router.replace("/(auth)/ProfessionalStatusScreen");
+      } else {
+        router.replace("/");
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : strings.auth.alertGenericMsg;
       setAlert({ visible: true, title: strings.auth.alertLocationErrorTitle, message: msg });
