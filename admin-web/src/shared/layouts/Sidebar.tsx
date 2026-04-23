@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-import { useSession } from '@/app/providers/AuthProvider';
+import { useSession } from '@/app/providers/useSession';
 import { useAdminProfile } from '@/features/auth/hooks/useAdminProfile';
 import { usePendingCount } from '@/features/professionals/hooks/usePendingCount';
 

@@ -15,7 +15,7 @@ import { AuthLayout } from '@/shared/layouts/AuthLayout';
 import { Input } from '@/shared/components/Input/Input';
 import { Button } from '@/shared/components/Button/Button';
 import { PageLoader } from '@/shared/components/PageLoader/PageLoader';
-import { useSession } from '@/app/providers/AuthProvider';
+import { useSession } from '@/app/providers/useSession';
 import { updatePassword } from '@/features/auth/services/adminAuthService';
 
 import styles from './SetPasswordScreen.module.css';

@@ -2,20 +2,20 @@
 // número grande abajo (Bricolage bold). Estado de loading con skeleton.
 // Sin íconos por ahora — se puede sumar en prop opcional si hace falta.
 
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
-import styles from './KpiCard.module.css';
+import styles from "./KpiCard.module.css";
 
 interface KpiCardProps {
-  label:      string;
-  value:      number | null | undefined;
+  label: string;
+  value: number | null | undefined;
   /** Si es true muestra skeleton en lugar del número. */
   isLoading?: boolean;
   /** Texto chico debajo del número (ej: "+12% vs. semana pasada"). Opcional. */
-  hint?:      ReactNode;
+  hint?: ReactNode;
 }
 
-const numberFmt = new Intl.NumberFormat('es-AR');
+const numberFmt = new Intl.NumberFormat("es-AR");
 
 export function KpiCard({ label, value, isLoading, hint }: KpiCardProps) {
   return (
@@ -26,7 +26,7 @@ export function KpiCard({ label, value, isLoading, hint }: KpiCardProps) {
         <span className={styles.skeleton} aria-hidden />
       ) : (
         <p className={styles.value}>
-          {value == null ? '—' : numberFmt.format(value)}
+          {value == null ? "—" : numberFmt.format(value)}
         </p>
       )}
 

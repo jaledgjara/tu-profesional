@@ -19,10 +19,13 @@ const HOME_ROUTES: Record<UserRole, string> = {
 };
 
 const AUTH_ROUTES = {
-  welcome:  "/(auth)/WelcomeScreen",
-  role:     "/(auth)/UserTypeScreen",
-  locationClient: "/(auth)/ClientLocationFormScreen",
-  locationPro:    "/(auth)/ProfessionalFormScreen",
+  welcome:         "/(auth)/WelcomeScreen",
+  role:            "/(auth)/UserTypeScreen",
+  locationClient:  "/(auth)/ClientLocationFormScreen",
+  locationPro:     "/(auth)/ProfessionalFormScreen",
+  // 'suspended' NO va bajo (auth) — el user ya está logueado, solo
+  // con la cuenta bloqueada. Vive en el grupo (blocked).
+  suspended:       "/(blocked)/SuspendedScreen",
 } as const;
 
 /**
@@ -36,6 +39,7 @@ export function resolveRoute(
   if (status === "loading") return null;
 
   if (status === "unauthenticated") return AUTH_ROUTES.welcome;
+  if (status === "suspended")       return AUTH_ROUTES.suspended;
   if (status === "needs-role")      return AUTH_ROUTES.role;
 
   if (status === "needs-location") {

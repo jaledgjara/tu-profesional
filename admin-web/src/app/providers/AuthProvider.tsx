@@ -6,7 +6,7 @@
 // decisiones con datos incompletos (kickear al login cuando en verdad sí
 // había sesión pero todavía no se hidrató).
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 
@@ -15,14 +15,7 @@ import {
   onAuthStateChange,
   signOut as signOutService,
 } from '@/features/auth/services/adminAuthService';
-
-interface AuthContextValue {
-  session:   Session | null;
-  isLoading: boolean;
-  signOut:   () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+import { AuthContext, type AuthContextValue } from '@/app/providers/useSession';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession]     = useState<Session | null>(null);
@@ -66,12 +59,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useSession(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error('useSession debe usarse dentro de <AuthProvider>.');
-  }
-  return ctx;
 }

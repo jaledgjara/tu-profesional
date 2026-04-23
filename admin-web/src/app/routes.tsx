@@ -11,7 +11,9 @@ import { RequireAdmin } from '@/app/guards/RequireAdmin';
 import { AdminShell } from '@/shared/layouts/AdminShell';
 import { HomeScreen } from '@/features/home/HomeScreen';
 import { ClientsScreen } from '@/features/clients/screens/ClientsScreen';
+import { ClientDetailScreen } from '@/features/clients/screens/ClientDetailScreen';
 import { ProfessionalsScreen } from '@/features/professionals/screens/ProfessionalsScreen';
+import { ProfessionalDetailScreen } from '@/features/professionals/screens/ProfessionalDetailScreen';
 import { RequestsScreen } from '@/features/professionals/screens/RequestsScreen';
 import { RequestDetailScreen } from '@/features/professionals/screens/RequestDetailScreen';
 import { ReviewsScreen } from '@/features/reviews/screens/ReviewsScreen';
@@ -30,13 +32,15 @@ export const router = createBrowserRouter([
           {
             element: <AdminShell />,
             children: [
-              { path: '/',              element: <HomeScreen /> },
-              { path: '/clients',       element: <ClientsScreen /> },
-              { path: '/professionals', element: <ProfessionalsScreen /> },
-              { path: '/requests',      element: <RequestsScreen /> },
-              { path: '/requests/:id',  element: <RequestDetailScreen /> },
-              { path: '/reviews',       element: <ReviewsScreen /> },
-              { path: '/activity',      element: <ActivityScreen /> },
+              { path: '/',                  element: <HomeScreen /> },
+              { path: '/clients',           element: <ClientsScreen /> },
+              { path: '/clients/:id',       element: <ClientDetailScreen /> },
+              { path: '/professionals',     element: <ProfessionalsScreen /> },
+              { path: '/professionals/:id', element: <ProfessionalDetailScreen /> },
+              { path: '/requests',          element: <RequestsScreen /> },
+              { path: '/requests/:id',      element: <RequestDetailScreen /> },
+              { path: '/reviews',           element: <ReviewsScreen /> },
+              { path: '/activity',          element: <ActivityScreen /> },
             ],
           },
         ],

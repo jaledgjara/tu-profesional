@@ -192,3 +192,209 @@ export async function rejectProfessional(id: string, reason: string): Promise<vo
   });
   if (error) throw error;
 }
+
+// =============================================================================
+// Listado paginado para la screen /professionals (distinta de /requests, que
+// solo muestra pendientes). Usa el RPC admin_list_professionals: acepta un
+// filtro de status opcional y búsqueda por nombre/email/matrícula/especialidad.
+// Devuelve { rows, total } en una sola llamada.
+// =============================================================================
+
+export type ProfessionalStatus = 'pending' | 'approved' | 'rejected';
+
+export interface AdminProfessional {
+  id:                 string;
+  full_name:          string | null;
+  email:              string | null;
+  photo_url:          string | null;
+  license:            string | null;
+  specialty:          string | null;
+  professional_area:  string[];
+  status:             ProfessionalStatus;
+  is_active:          boolean;
+  created_at:         string;
+  // Moderación de profile (suspensión/delete) — sumado en 0022.
+  suspended_at:       string | null;
+  deleted_at:         string | null;
+}
+
+export interface ListProfessionalsParams {
+  status?:  ProfessionalStatus;
+  search?:  string;
+  page:     number;
+  pageSize: number;
+}
+
+export interface ListProfessionalsResult {
+  rows:  AdminProfessional[];
+  total: number;
+}
+
+export async function listProfessionals({
+  status,
+  search,
+  page,
+  pageSize,
+}: ListProfessionalsParams): Promise<ListProfessionalsResult> {
+  const offset = (Math.max(1, page) - 1) * pageSize;
+
+  const { data, error } = await supabase.rpc('admin_list_professionals', {
+    p_status: status ?? null,
+    p_search: search && search.trim() ? search.trim() : null,
+    p_limit:  pageSize,
+    p_offset: offset,
+  });
+
+  if (error) throw error;
+
+  const payload = data as { total: number; rows: AdminProfessional[] } | null;
+
+  return {
+    rows: (payload?.rows ?? []).map((r) => ({
+      ...r,
+      professional_area: r.professional_area ?? [],
+    })),
+    total: Number(payload?.total ?? 0),
+  };
+}
+
+
+// =============================================================================
+// Detalle por id — consumido por /professionals/:id
+// =============================================================================
+// Distinto de getPendingProfessional (que es del flujo /requests/:id sobre
+// professionals recién creados). Acá el RPC admin_get_professional_by_id
+// devuelve TODO en un solo payload: profile + professional + location +
+// suscripción + historial de moderación + stats/reviews recibidas.
+//
+// Se consume desde ProfessionalDetailScreen y habilita las acciones admin
+// (suspender, forzar logout, pausar suscripción) que aterrizan en Sprint B/C.
+
+export type SubscriptionStatus =
+  | 'none'
+  | 'trialing'
+  | 'active'
+  | 'past_due'
+  | 'paused'
+  | 'canceled';
+
+export interface AdminProfessionalReview {
+  id:             string;
+  reviewer_id:    string;
+  reviewer_email: string | null;
+  rating:         number;
+  comment:        string | null;
+  created_at:     string;
+  hidden_at:      string | null;
+  hidden_reason:  string | null;
+}
+
+export interface AdminProfessionalDetail {
+  profile: {
+    id:                 string;
+    email:              string | null;
+    role:               'professional';
+    created_at:         string;
+    suspended_at:       string | null;
+    suspension_reason:  string | null;
+    deleted_at:         string | null;
+  };
+  auth: {
+    last_sign_in_at: string | null;
+  };
+  professional: {
+    id:                  string;
+    full_name:           string | null;
+    phone:               string | null;
+    dni:                 string | null;
+    license:             string | null;
+    photo_url:           string | null;
+    category:            string;
+    specialty:           string | null;
+    sub_specialties:     string[];
+    professional_area:   string[];
+    description:         string | null;
+    quote:               string | null;
+    quote_author:        string | null;
+    attends_online:      boolean;
+    attends_presencial:  boolean;
+    is_active:           boolean;
+    status:              ProfessionalStatus;
+    created_at:          string;
+    updated_at:          string;
+    social_whatsapp:     string | null;
+    social_instagram:    string | null;
+    social_linkedin:     string | null;
+    social_twitter:      string | null;
+    social_tiktok:       string | null;
+  } | null;
+  location: ProfessionalLocation | null;
+  subscription: {
+    status:            SubscriptionStatus;
+    ends_at:           string | null;
+    trial_ends_at:     string | null;
+    mp_preapproval_id: string | null;
+  } | null;
+  moderation: {
+    reviewed_at:       string | null;
+    reviewed_by:       string | null;
+    reviewed_by_email: string | null;
+    rejection_reason:  string | null;
+  } | null;
+  // Moderación del profile: suspend/delete. Separado de `moderation`
+  // (que es sobre aprobación del perfil profesional) para no mezclarlos.
+  user_moderation: {
+    suspended_at:        string | null;
+    suspended_by:        string | null;
+    suspended_by_email:  string | null;
+    suspension_reason:   string | null;
+    deleted_at:          string | null;
+    deleted_by:          string | null;
+    deleted_by_email:    string | null;
+  };
+  reviews_stats: {
+    total:             number;
+    visible:           number;
+    hidden:            number;
+    avg_rating:        number;
+    rating_breakdown: { 1: number; 2: number; 3: number; 4: number; 5: number };
+  };
+  reviews: AdminProfessionalReview[];
+}
+
+export async function getProfessionalById(id: string): Promise<AdminProfessionalDetail | null> {
+  const { data, error } = await supabase.rpc('admin_get_professional_by_id', { p_id: id });
+  if (error) throw error;
+  if (!data) return null;
+
+  // El RPC devuelve sub_specialties/professional_area como null si la fila
+  // no los tiene seteados — normalizamos a [] para que el front no tenga
+  // que ramificar en cada render.
+  const raw = data as AdminProfessionalDetail;
+  return {
+    ...raw,
+    professional: raw.professional
+      ? {
+          ...raw.professional,
+          sub_specialties:   raw.professional.sub_specialties   ?? [],
+          professional_area: raw.professional.professional_area ?? [],
+        }
+      : null,
+  };
+}
+
+
+// =============================================================================
+// Acciones de moderación — Sprint B
+// =============================================================================
+// Los RPCs admin_suspend_user/admin_unsuspend_user/admin_soft_delete_user/
+// admin_restore_user operan sobre profiles.id — vale igual para client y pro.
+// Re-exportamos desde el service del pro para que los hooks de este feature
+// tengan un único punto de import.
+
+export {
+  suspendUser,
+  unsuspendUser,
+  deleteUser,
+  restoreUser,
+} from '@/features/clients/services/clientsService';

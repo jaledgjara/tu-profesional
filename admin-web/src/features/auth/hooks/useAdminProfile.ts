@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { Database } from '@shared/database.types';
 
 import { supabase } from '@/shared/lib/supabaseClient';
-import { useSession } from '@/app/providers/AuthProvider';
+import { useSession } from '@/app/providers/useSession';
 
 export type AdminProfile = Pick<
   Database['public']['Tables']['profiles']['Row'],

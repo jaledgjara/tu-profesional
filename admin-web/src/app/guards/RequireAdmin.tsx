@@ -8,7 +8,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 
-import { useSession } from '@/app/providers/AuthProvider';
+import { useSession } from '@/app/providers/useSession';
 import { useAdminProfile } from '@/features/auth/hooks/useAdminProfile';
 import { PageLoader } from '@/shared/components/PageLoader/PageLoader';
 

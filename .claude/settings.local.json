@@ -61,7 +61,9 @@
       "Bash(git -C /Users/jaledjara/TPtpTPPPTptp/tu-profesional status)",
       "Bash(git -C /Users/jaledjara/TPtpTPPPTptp/tu-profesional log --oneline -3)",
       "Bash(npm create *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(npx eslint *)"
     ]
   }
 }

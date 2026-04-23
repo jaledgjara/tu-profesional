@@ -6,7 +6,7 @@
 
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
-import { useSession } from '@/app/providers/AuthProvider';
+import { useSession } from '@/app/providers/useSession';
 import { PageLoader } from '@/shared/components/PageLoader/PageLoader';
 
 export function RequireAuth() {

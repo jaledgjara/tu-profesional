@@ -25,7 +25,11 @@ export type AuthStatus =
   | "unauthenticated"
   | "needs-role"
   | "needs-location"
-  | "authenticated";
+  | "authenticated"
+  | "suspended";     // Cuenta marcada con suspended_at por un admin.
+                     // El guard la manda a SuspendedScreen. Si el admin
+                     // la reactiva, el próximo refresh() la vuelve a
+                     //'authenticated' (o el status que corresponda).
 
 interface AuthState {
   session: Session | null;
@@ -79,6 +83,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           return;
         }
         console.log("[authStore::refresh] Profile encontrado — rol:", profile.role);
+
+        // Moderación por admin. Dos estados terminales:
+        //   - deleted_at: la cuenta fue soft-deleted. La deslogueamos;
+        //     si intenta volver a entrar con su email/password no va a
+        //     poder porque el admin también puede bloquear auth.users si
+        //     es caso grave. En el default actual, puede loguearse pero
+        //     su profile sigue con deleted_at → loop infinito de signOut
+        //     sólo si volvemos a detectarlo. Por eso signOut y listo.
+        //   - suspended_at: sigue logueado pero en SuspendedScreen. Si
+        //     el admin lo reactiva, próximo refresh() lo libera.
+        const profileAny = profile as Profile & {
+          suspended_at?: string | null;
+          deleted_at?:   string | null;
+        };
+
+        if (profileAny.deleted_at) {
+          console.log("[authStore::refresh] Cuenta eliminada por admin → forzando signOut");
+          await authService.signOut();
+          set({ session: null, profile: null, status: "unauthenticated" });
+          return;
+        }
+
+        if (profileAny.suspended_at) {
+          console.log("[authStore::refresh] Cuenta suspendida por admin → status: suspended");
+          set({ session, profile, status: "suspended" });
+          return;
+        }
 
         const hasLocation = await hasUserLocation(session.user.id);
         if (!hasLocation) {
