@@ -26,11 +26,15 @@ export type Database = {
           id: string
           is_active: boolean
           license: string | null
+          mp_preapproval_id: string | null
           phone: string | null
           photo_url: string | null
           professional_area: string[]
           quote: string | null
           quote_author: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           search_tsv: unknown
           social_instagram: string | null
           social_linkedin: string | null
@@ -38,7 +42,11 @@ export type Database = {
           social_twitter: string | null
           social_whatsapp: string | null
           specialty: string | null
+          status: Database["public"]["Enums"]["professional_status"]
           sub_specialties: string[] | null
+          subscription_ends_at: string | null
+          subscription_status: string
+          trial_ends_at: string | null
           updated_at: string
         }
         Insert: {
@@ -52,11 +60,15 @@ export type Database = {
           id: string
           is_active?: boolean
           license?: string | null
+          mp_preapproval_id?: string | null
           phone?: string | null
           photo_url?: string | null
           professional_area?: string[]
           quote?: string | null
           quote_author?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           search_tsv?: unknown
           social_instagram?: string | null
           social_linkedin?: string | null
@@ -64,7 +76,11 @@ export type Database = {
           social_twitter?: string | null
           social_whatsapp?: string | null
           specialty?: string | null
+          status?: Database["public"]["Enums"]["professional_status"]
           sub_specialties?: string[] | null
+          subscription_ends_at?: string | null
+          subscription_status?: string
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -78,11 +94,15 @@ export type Database = {
           id?: string
           is_active?: boolean
           license?: string | null
+          mp_preapproval_id?: string | null
           phone?: string | null
           photo_url?: string | null
           professional_area?: string[]
           quote?: string | null
           quote_author?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           search_tsv?: unknown
           social_instagram?: string | null
           social_linkedin?: string | null
@@ -90,7 +110,11 @@ export type Database = {
           social_twitter?: string | null
           social_whatsapp?: string | null
           specialty?: string | null
+          status?: Database["public"]["Enums"]["professional_status"]
           sub_specialties?: string[] | null
+          subscription_ends_at?: string | null
+          subscription_status?: string
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -98,6 +122,13 @@ export type Database = {
             foreignKeyName: "professionals_id_fkey"
             columns: ["id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professionals_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -487,6 +518,10 @@ export type Database = {
             }
             Returns: string
           }
+      approve_professional: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       count_professionals_by_area: {
         Args: never
         Returns: {
@@ -759,6 +794,14 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      reject_professional: {
+        Args: { p_id: string; p_reason: string }
+        Returns: undefined
+      }
+      reopen_professional: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       professionals_by_area: {
         Args: {
           p_area_slug: string
@@ -1430,7 +1473,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      professional_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       geometry_dump: {
@@ -1565,6 +1608,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      professional_status: ["pending", "approved", "rejected"],
+    },
   },
 } as const

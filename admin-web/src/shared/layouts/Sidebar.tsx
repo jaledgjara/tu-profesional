@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Users,
   Stethoscope,
+  ClipboardList,
   Star,
   ScrollText,
   LogOut,
@@ -17,6 +18,7 @@ import type { LucideIcon } from 'lucide-react';
 
 import { useSession } from '@/app/providers/AuthProvider';
 import { useAdminProfile } from '@/features/auth/hooks/useAdminProfile';
+import { usePendingCount } from '@/features/professionals/hooks/usePendingCount';
 
 import styles from './Sidebar.module.css';
 
@@ -31,6 +33,7 @@ const MAIN_ITEMS: NavItem[] = [
   { to: '/',              icon: LayoutDashboard, label: 'Panel', end: true },
   { to: '/clients',       icon: Users,           label: 'Clientes' },
   { to: '/professionals', icon: Stethoscope,     label: 'Profesionales' },
+  { to: '/requests',      icon: ClipboardList,   label: 'Solicitudes' },
   { to: '/reviews',       icon: Star,            label: 'Reseñas' },
 ];
 
@@ -42,6 +45,7 @@ export function Sidebar() {
   const navigate = useNavigate();
   const { signOut } = useSession();
   const { data: profile } = useAdminProfile();
+  const { data: pendingCount } = usePendingCount();
 
   const email    = profile?.email ?? '';
   const initial  = email.charAt(0).toUpperCase() || '?';
@@ -61,7 +65,11 @@ export function Sidebar() {
       <nav className={styles.nav} aria-label="Navegación principal">
         <ul className={styles.list}>
           {MAIN_ITEMS.map((item) => (
-            <NavItemLink key={item.to} item={item} />
+            <NavItemLink
+              key={item.to}
+              item={item}
+              badgeCount={item.to === '/requests' ? pendingCount ?? 0 : 0}
+            />
           ))}
         </ul>
 
@@ -69,7 +77,7 @@ export function Sidebar() {
 
         <ul className={styles.list}>
           {ADMIN_ITEMS.map((item) => (
-            <NavItemLink key={item.to} item={item} />
+            <NavItemLink key={item.to} item={item} badgeCount={0} />
           ))}
         </ul>
       </nav>
@@ -93,7 +101,7 @@ export function Sidebar() {
   );
 }
 
-function NavItemLink({ item }: { item: NavItem }) {
+function NavItemLink({ item, badgeCount }: { item: NavItem; badgeCount: number }) {
   const Icon = item.icon;
   return (
     <li>
@@ -105,7 +113,15 @@ function NavItemLink({ item }: { item: NavItem }) {
         }
       >
         <Icon size={18} aria-hidden className={styles.linkIcon} />
-        <span>{item.label}</span>
+        <span className={styles.linkLabel}>{item.label}</span>
+        {badgeCount > 0 ? (
+          <span
+            className={styles.badge}
+            aria-label={`${badgeCount} pendiente${badgeCount === 1 ? '' : 's'}`}
+          >
+            {badgeCount > 99 ? '99+' : badgeCount}
+          </span>
+        ) : null}
       </NavLink>
     </li>
   );

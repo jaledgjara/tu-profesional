@@ -12,6 +12,8 @@ import { AdminShell } from '@/shared/layouts/AdminShell';
 import { HomeScreen } from '@/features/home/HomeScreen';
 import { ClientsScreen } from '@/features/clients/screens/ClientsScreen';
 import { ProfessionalsScreen } from '@/features/professionals/screens/ProfessionalsScreen';
+import { RequestsScreen } from '@/features/professionals/screens/RequestsScreen';
+import { RequestDetailScreen } from '@/features/professionals/screens/RequestDetailScreen';
 import { ReviewsScreen } from '@/features/reviews/screens/ReviewsScreen';
 import { ActivityScreen } from '@/features/activity/screens/ActivityScreen';
 import { LoginScreen } from '@/features/auth/screens/LoginScreen';
@@ -31,6 +33,8 @@ export const router = createBrowserRouter([
               { path: '/',              element: <HomeScreen /> },
               { path: '/clients',       element: <ClientsScreen /> },
               { path: '/professionals', element: <ProfessionalsScreen /> },
+              { path: '/requests',      element: <RequestsScreen /> },
+              { path: '/requests/:id',  element: <RequestDetailScreen /> },
               { path: '/reviews',       element: <ReviewsScreen /> },
               { path: '/activity',      element: <ActivityScreen /> },
             ],
