@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -18,25 +18,52 @@ export function AnimatedTabBar({
 }: AnimatedTabBarProps) {
   const insets = useSafeAreaInsets();
 
-  const pillAnims = useRef(
-    state.routes.map((_, i) => new Animated.Value(i === state.index ? 1 : 0)),
-  ).current;
+  // Expo Router traduce `href: null` a `tabBarButton: () => null` internamente.
+  // Un custom tabBar tiene que filtrar esas rutas a mano — el default las oculta
+  // automáticamente pero acá renderizamos todo, así que las excluimos nosotros.
+  const visibleRoutes = useMemo(() => {
+    return state.routes.filter((route) => {
+      const opts = descriptors[route.key]?.options as
+        | { href?: string | null; tabBarButton?: unknown }
+        | undefined;
+      if (!opts) return true;
+      if (opts.href === null) return false;
+      if (typeof opts.tabBarButton === 'function') return false;
+      return true;
+    });
+  }, [state.routes, descriptors]);
+
+  const focusedKey = state.routes[state.index]?.key;
+
+  // Una Animated.Value por key (estable entre renders). Si aparece una ruta
+  // nueva después del mount, se le crea la suya; las viejas se mantienen.
+  const pillAnimsRef = useRef<Map<string, Animated.Value>>(new Map());
+  visibleRoutes.forEach((route) => {
+    if (!pillAnimsRef.current.has(route.key)) {
+      pillAnimsRef.current.set(
+        route.key,
+        new Animated.Value(route.key === focusedKey ? 1 : 0),
+      );
+    }
+  });
 
   useEffect(() => {
-    state.routes.forEach((_, i) => {
-      Animated.timing(pillAnims[i], {
-        toValue: i === state.index ? 1 : 0,
+    visibleRoutes.forEach((route) => {
+      const anim = pillAnimsRef.current.get(route.key);
+      if (!anim) return;
+      Animated.timing(anim, {
+        toValue: route.key === focusedKey ? 1 : 0,
         duration: 200,
         useNativeDriver: true,
       }).start();
     });
-  }, [state.index]);
+  }, [focusedKey, visibleRoutes]);
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-      {state.routes.map((route, index) => {
+      {visibleRoutes.map((route) => {
         const { options } = descriptors[route.key];
-        const isFocused = state.index === index;
+        const isFocused = route.key === focusedKey;
 
         const label =
           typeof options.tabBarLabel === 'string'
@@ -54,6 +81,8 @@ export function AnimatedTabBar({
           }
         };
 
+        const pillAnim = pillAnimsRef.current.get(route.key);
+
         return (
           <Pressable
             key={route.key}
@@ -63,12 +92,14 @@ export function AnimatedTabBar({
             onPress={onPress}
             style={styles.tab}
           >
-            <Animated.View
-              style={[
-                styles.pill,
-                { backgroundColor: activePillColor, opacity: pillAnims[index] },
-              ]}
-            />
+            {pillAnim ? (
+              <Animated.View
+                style={[
+                  styles.pill,
+                  { backgroundColor: activePillColor, opacity: pillAnim },
+                ]}
+              />
+            ) : null}
             {options.tabBarIcon?.({
               focused: isFocused,
               color: isFocused ? activeTintColor : colors.icon.inactive,

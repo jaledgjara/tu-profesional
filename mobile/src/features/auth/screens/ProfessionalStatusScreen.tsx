@@ -27,6 +27,7 @@ import {
   getShadow,
 } from "@/shared/theme";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { getHomeRoute } from "@/shared/utils/routeResolver";
 
 import {
   useMyProfessionalStatus,
@@ -62,7 +63,7 @@ const STATUS_CONFIG: Record<ProfessionalStatus, StatusConfig> = {
     title:    "¡Tu perfil fue aprobado!",
     subtitle:
       "Ya apareces en el listado público y los usuarios pueden encontrarte. " +
-      "Completá lo que falte y empezá a recibir consultas.",
+      "Tocá “Entrar” para ir a tu panel y empezar a recibir consultas.",
   },
   rejected: {
     icon:     "close-circle",
@@ -81,7 +82,7 @@ export default function ProfessionalStatusScreen() {
   const insets  = useSafeAreaInsets();
   const signOut = useAuthStore((s) => s.signOut);
 
-  const { status, rejectionReason, isLoading, refresh } = useMyProfessionalStatus();
+  const { status, rejectionReason, isLoading, error, refresh } = useMyProfessionalStatus();
 
   const handleStartOver = useCallback(async () => {
     // "Volver a empezar" = desautenticarse y volver al Welcome del flow de auth.
@@ -89,8 +90,47 @@ export default function ProfessionalStatusScreen() {
     router.replace("/(auth)/WelcomeScreen");
   }, [signOut]);
 
-  // ── Loader inicial (antes del primer fetch) ────────────────────
+  const handleEnterDashboard = useCallback(() => {
+    // Cierra el flow: el pro ya está authenticated + approved, pasa al home.
+    // Usamos getHomeRoute para no hardcodear la ruta (mantiene consistencia
+    // con el resto de guards).
+    router.replace(getHomeRoute("professional") as never);
+  }, []);
+
+  // ── Loader inicial / error sin data (antes del primer fetch) ───
   if (status === null) {
+    // Si el primer fetch falló y no hay data que mostrar, damos un retry
+    // explícito en vez de dejar el loader colgado.
+    if (!isLoading && error) {
+      return (
+        <View
+          style={[
+            styles.container,
+            styles.loaderContainer,
+            { paddingTop: insets.top, paddingBottom: insets.bottom },
+          ]}
+        >
+          <Ionicons
+            name="cloud-offline-outline"
+            size={48}
+            color={colors.text.tertiary}
+          />
+          <Text style={styles.title}>No pudimos consultar tu estado</Text>
+          <Text style={styles.subtitle}>
+            Revisá tu conexión a internet y probá de nuevo.
+          </Text>
+          <View style={{ marginTop: spacing[4] }}>
+            <Button
+              label="Reintentar"
+              variant="primary"
+              size="md"
+              onPress={refresh}
+            />
+          </View>
+        </View>
+      );
+    }
+
     return (
       <View
         style={[
@@ -150,7 +190,17 @@ export default function ProfessionalStatusScreen() {
       </ScrollView>
 
       {/* ── Footer condicional según estado ─────────────────────── */}
-      {status === "rejected" ? (
+      {status === "approved" ? (
+        <View style={styles.footer}>
+          <Button
+            label="Entrar"
+            variant="primary"
+            size="lg"
+            fullWidth
+            onPress={handleEnterDashboard}
+          />
+        </View>
+      ) : status === "rejected" ? (
         <View style={styles.footer}>
           <Button
             label="Volver a empezar"

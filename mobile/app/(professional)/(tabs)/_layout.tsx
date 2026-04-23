@@ -86,6 +86,11 @@ export default function ProfessionalTabsLayout() {
           ),
         }}
       />
+
+      {/* Sub-rutas accesibles por navegación pero sin botón propio en la tab bar.
+          Expo Router descubre todos los .tsx del folder y les arma una tab por
+          default; href:null las registra como navegables pero invisibles. */}
+      <Tabs.Screen name="briefcase/reviews" options={{ href: null }} />
     </Tabs>
   );
 }
