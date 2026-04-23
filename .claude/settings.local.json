@@ -53,7 +53,15 @@
       "Bash(git merge:*)",
       "Bash(git diff *)",
       "Bash(git *)",
-      "Bash(gh pr *)"
+      "Bash(gh pr *)",
+      "Bash(git -C /Users/jaledjara/TPtpTPPPTptp/tu-profesional ls-files --full-name)",
+      "Bash(awk -F/ '{print $1}')",
+      "Bash(mkdir mobile *)",
+      "Bash(git mv *)",
+      "Bash(git -C /Users/jaledjara/TPtpTPPPTptp/tu-profesional status)",
+      "Bash(git -C /Users/jaledjara/TPtpTPPPTptp/tu-profesional log --oneline -3)",
+      "Bash(npm create *)",
+      "Bash(npm run *)"
     ]
   }
 }
