@@ -12,6 +12,7 @@ interface AppHeaderProps {
   rightAction?:  React.ReactNode;   // un solo slot (usar múltiples IconButtons en una View)
   style?:        ViewStyle;
   noBorder?:     boolean;
+  titleAlign?:   'center' | 'left'; // 'left' = pegado al leftAction (ej. pantallas con título corto)
 }
 
 const bgByVariant: Record<AppHeaderVariant, string> = {
@@ -30,13 +31,15 @@ const textByVariant: Record<AppHeaderVariant, string> = {
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
   title,
-  variant   = 'white',
+  variant    = 'white',
   leftAction,
   rightAction,
   style,
-  noBorder = false,
+  noBorder   = false,
+  titleAlign = 'center',
 }) => {
   const insets = useSafeAreaInsets();
+  const isLeft = titleAlign === 'left';
 
   return (
     <View
@@ -53,7 +56,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     >
       <View style={styles.inner}>
         {/* LEFT SLOT */}
-        <View style={styles.side}>
+        <View style={[styles.side, isLeft && styles.sideAuto]}>
           {leftAction}
         </View>
 
@@ -63,6 +66,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             style={[
               typography.h4,
               { color: textByVariant[variant] },
+              isLeft && styles.titleLeft,
             ]}
             numberOfLines={1}
           >
@@ -71,7 +75,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         )}
 
         {/* RIGHT SLOT */}
-        <View style={[styles.side, styles.rightSide]}>
+        <View
+          style={[
+            styles.side,
+            styles.rightSide,
+            isLeft && styles.rightSideFlex,
+          ]}
+        >
           {rightAction}
         </View>
       </View>
@@ -94,7 +104,17 @@ const styles = StyleSheet.create({
     flexDirection:  'row',
     alignItems:     'center',
   },
+  sideAuto: {
+    width: 'auto',
+  },
   rightSide: {
     justifyContent: 'flex-end',
+  },
+  rightSideFlex: {
+    flex: 1,
+  },
+  titleLeft: {
+    marginLeft: spacing[2],
+    flexShrink: 1,
   },
 });

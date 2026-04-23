@@ -51,7 +51,9 @@
       "Bash(gh run:*)",
       "Bash(git pull:*)",
       "Bash(git merge:*)",
-      "Bash(git diff *)"
+      "Bash(git diff *)",
+      "Bash(git *)",
+      "Bash(gh pr *)"
     ]
   }
 }

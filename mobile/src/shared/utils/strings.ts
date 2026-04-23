@@ -112,10 +112,16 @@ export const strings = {
     experience: "Experiencia",
     rating: "Calificación",
     reviews_label: "Reseñas",
+    newPro: "Nuevo",
     leaveAppTitle: "¿Salir de la app?",
     leaveAppDesc: "Serás redirigido a una aplicación externa.",
     leaveAppConfirm: "Ir",
     distance: "de tu casa",
+    openInMaps: "Ir al mapa",
+    chooseMapApp: "¿Con qué app querés abrirlo?",
+    mapApple: "Apple Maps",
+    mapGoogle: "Google Maps",
+    mapWaze: "Waze",
   },
 
   // PERFIL (usuario)
@@ -314,6 +320,54 @@ export const strings = {
     successMessage:  "Lamentamos verte partir. Gracias por haber sido parte de Tu Profesional.",
     errorTitle:      "No pudimos eliminar la cuenta",
     errorMessage:    "Ocurrió un error. Probá de nuevo o escribinos al equipo de soporte.",
+  },
+
+  // RESEÑAS — write/edit/delete + listado completo
+  reviews: {
+    // Inline card en el perfil ("agregar valoración")
+    promptTitle: "Dejá tu valoración",
+    promptCta:   "Agregar valoración",
+    thanksTitle: "Gracias por colaborar",
+    thanksDesc:  "Tu valoración ya fue registrada.",
+
+    // Títulos de pantalla
+    writeTitle:      "Dejale una reseña",
+    editTitle:       "Editá tu reseña",
+    allReviewsTitle: "Todas las reseñas",
+
+    // Form labels
+    ratingLabel:        "¿Cómo fue tu experiencia?",
+    commentLabel:       "Contanos tu experiencia",
+    commentPlaceholder: "Escribí tu experiencia con el profesional.",
+
+    // CTAs
+    submitCta: "Publicar reseña",
+    updateCta: "Guardar cambios",
+    deleteCta: "Borrar reseña",
+    writeCta:  "Escribir reseña",
+    editCta:   "Editar reseña",
+
+    // Feedback
+    successTitle: "¡Gracias por tu reseña!",
+    successMsg:   "Ya se publicó en el perfil del profesional.",
+
+    // Confirmación de borrado
+    deleteConfirmTitle: "¿Borrar reseña?",
+    deleteConfirmMsg:   "No vas a poder deshacer esta acción.",
+
+    // Errores
+    errorTitle:      "No pudimos guardar tu reseña",
+    errorMsg:        "Probá de nuevo en un momento.",
+    minRatingError:  "Elegí una puntuación.",
+    minCommentError: "Contanos tu experiencia con el profesional",
+
+    // Empty state (AllReviewsScreen)
+    emptyTitle: "Sin reseñas todavía",
+    emptyDesc:  "Todavía nadie dejó una reseña de este profesional.",
+
+    // Badge contador (bajo la estrella en el rating badge)
+    count:    "{n} reseñas",
+    countOne: "1 reseña",
   },
 
   // COMMON
